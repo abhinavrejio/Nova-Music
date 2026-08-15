@@ -2,20 +2,26 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-final ThemeData appTheme = ThemeData(
+final appTheme = ThemeData(
   useMaterial3: true,
-  colorSchemeSeed: AppColors.primary,
-  scaffoldBackgroundColor: AppColors.background,
-  cardColor: AppColors.card,
-  dividerColor: AppColors.divider,
 
-  appBarTheme: const AppBarTheme(
-    elevation: 0,
-    centerTitle: false,
-    backgroundColor: Colors.transparent,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: AppColors.primary,
+    brightness: Brightness.light,
   ),
 
-  navigationBarTheme: const NavigationBarThemeData(
-    indicatorColor: Color(0xFFE8DDFF),
+  scaffoldBackgroundColor: AppColors.background,
+
+  cardTheme: CardThemeData(
+    color: AppColors.surface,
+    elevation: 2,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+    ),
+  ),
+
+  navigationBarTheme: NavigationBarThemeData(
+    backgroundColor: AppColors.surface,
+    indicatorColor: AppColors.primary.withOpacity(0.15),
   ),
 );

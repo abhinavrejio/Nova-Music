@@ -1,26 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_text_styles.dart';
+
 class GreetingHeader extends StatelessWidget {
   const GreetingHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Good Evening',
-          style: TextStyle(
-            fontSize: 30,
-            fontWeight: FontWeight.bold,
-          ),
+          style: AppTextStyles.heading,
         ),
-        SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           'Welcome back!',
-          style: TextStyle(
-            color: Colors.grey,
-          ),
+          style: AppTextStyles.caption,
         ),
       ],
     );

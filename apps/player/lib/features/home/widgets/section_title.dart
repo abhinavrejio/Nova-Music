@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_text_styles.dart';
+
 class SectionTitle extends StatelessWidget {
   final String title;
 
@@ -12,10 +14,7 @@ class SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-      ),
+      style: AppTextStyles.title,
     );
   }
 }
