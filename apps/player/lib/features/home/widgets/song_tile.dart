@@ -19,4 +19,4 @@ class SongTile extends StatelessWidget {
       trailing: const Icon(Icons.more_vert),
     );
   }
-}git add .
+}
