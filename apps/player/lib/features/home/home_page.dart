@@ -8,6 +8,11 @@ import 'widgets/playlist_card.dart';
 import 'widgets/recent_album_card.dart';
 import 'widgets/section_title.dart';
 import 'widgets/song_tile.dart';
+import 'widgets/continue_listening_card.dart';
+const GreetingHeader(),
+const SizedBox(height: 24),
+
+const ContinueListeningCard(),
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
