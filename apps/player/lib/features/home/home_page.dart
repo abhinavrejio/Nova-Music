@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../providers/song_provider.dart';
 
 import 'widgets/greeting_header.dart';
 import 'widgets/playlist_card.dart';
@@ -6,11 +9,13 @@ import 'widgets/recent_album_card.dart';
 import 'widgets/section_title.dart';
 import 'widgets/song_tile.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final songs = ref.watch(songsProvider);
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -43,19 +48,11 @@ class HomePage extends StatelessWidget {
 
             const SectionTitle(title: 'Quick Picks'),
 
-            const SongTile(
-              title: 'Blinding Lights',
-              artist: 'The Weeknd',
-            ),
-
-            const SongTile(
-              title: 'Believer',
-              artist: 'Imagine Dragons',
-            ),
-
-            const SongTile(
-              title: 'Starboy',
-              artist: 'The Weeknd',
+            ...songs.map(
+              (song) => SongTile(
+                title: song.title,
+                artist: song.artist,
+              ),
             ),
 
             const SizedBox(height: 30),
