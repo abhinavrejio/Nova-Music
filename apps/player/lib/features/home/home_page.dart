@@ -1,26 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../providers/song_provider.dart';
-
+import 'widgets/continue_listening_card.dart';
 import 'widgets/greeting_header.dart';
+import 'widgets/made_for_you_card.dart';
 import 'widgets/playlist_card.dart';
 import 'widgets/recent_album_card.dart';
 import 'widgets/section_title.dart';
 import 'widgets/song_tile.dart';
-import 'widgets/continue_listening_card.dart';
-const GreetingHeader(),
-const SizedBox(height: 24),
-
-const ContinueListeningCard(),
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final songs = ref.watch(songsProvider);
-
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -29,7 +22,41 @@ class HomePage extends ConsumerWidget {
           children: [
             const GreetingHeader(),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 24),
+
+            const ContinueListeningCard(),
+
+            const SizedBox(height: 32),
+
+            const SectionTitle(title: 'Made For You'),
+
+            const SizedBox(height: 16),
+
+            SizedBox(
+              height: 170,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: const [
+                  MadeForYouCard(
+                    title: 'Daily Mix',
+                    subtitle: '32 Songs',
+                    icon: Icons.favorite,
+                  ),
+                  MadeForYouCard(
+                    title: 'Workout',
+                    subtitle: '48 Songs',
+                    icon: Icons.fitness_center,
+                  ),
+                  MadeForYouCard(
+                    title: 'Relax',
+                    subtitle: '25 Songs',
+                    icon: Icons.nightlight_round,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
 
             const SectionTitle(title: 'Recently Played'),
 
@@ -53,11 +80,14 @@ class HomePage extends ConsumerWidget {
 
             const SectionTitle(title: 'Quick Picks'),
 
-            ...songs.map(
-              (song) => SongTile(
-                title: song.title,
-                artist: song.artist,
-              ),
+            const SongTile(
+              title: 'Blinding Lights',
+              artist: 'The Weeknd',
+            ),
+
+            const SongTile(
+              title: 'Believer',
+              artist: 'Imagine Dragons',
             ),
 
             const SizedBox(height: 30),
