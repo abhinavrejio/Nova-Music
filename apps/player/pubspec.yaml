@@ -42,9 +42,8 @@ flutter:
   uses-material-design: true
 
   assets:
-    - lib/assets/images/
-    - lib/assets/icons/
-
+    - assets/images/
+    - assets/icons/
 
 
   # Future fonts can be added here
