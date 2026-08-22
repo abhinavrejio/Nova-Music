@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/song.dart';
+import '../../repositories/music_repository.dart';
+
 import 'widgets/continue_listening_card.dart';
 import 'widgets/greeting_header.dart';
-import 'widgets/made_for_you_card.dart';
 import 'widgets/playlist_card.dart';
 import 'widgets/recent_album_card.dart';
 import 'widgets/section_title.dart';
 import 'widgets/song_tile.dart';
+import '../../models/album.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final List<Song> songs = const MusicRepository().getSongs();
+    final List<Album> albums = const MusicRepository().getAlbums();
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -32,62 +38,46 @@ class HomePage extends ConsumerWidget {
 
             const SizedBox(height: 16),
 
-            SizedBox(
-              height: 170,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: const [
-                  MadeForYouCard(
-                    title: 'Daily Mix',
-                    subtitle: '32 Songs',
-                    icon: Icons.favorite,
-                  ),
-                  MadeForYouCard(
-                    title: 'Workout',
-                    subtitle: '48 Songs',
-                    icon: Icons.fitness_center,
-                  ),
-                  MadeForYouCard(
-                    title: 'Relax',
-                    subtitle: '25 Songs',
-                    icon: Icons.nightlight_round,
-                  ),
-                ],
-              ),
-            ),
+SizedBox(
+  height: 190,
+  child: ListView.builder(
+    scrollDirection: Axis.horizontal,
+    itemCount: albums.length,
+    itemBuilder: (context, index) {
+      return RecentAlbumCard(
+        album: albums[index],
+      );
+    },
+  ),
+),
 
-            const SizedBox(height: 32),
+const SizedBox(height: 32),
 
             const SectionTitle(title: 'Recently Played'),
 
-            const SizedBox(height: 15),
+const SizedBox(height: 15),
 
-            SizedBox(
-              height: 120,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: const [
-                  RecentAlbumCard(title: 'Album 1'),
-                  SizedBox(width: 12),
-                  RecentAlbumCard(title: 'Album 2'),
-                  SizedBox(width: 12),
-                  RecentAlbumCard(title: 'Album 3'),
-                ],
-              ),
-            ),
+SizedBox(
+  height: 190,
+  child: ListView.builder(
+    scrollDirection: Axis.horizontal,
+    itemCount: albums.length,
+    itemBuilder: (context, index) {
+      return RecentAlbumCard(
+        album: albums[index],
+      );
+    },
+  ),
+),
 
             const SizedBox(height: 30),
 
             const SectionTitle(title: 'Quick Picks'),
 
-            const SongTile(
-              title: 'Blinding Lights',
-              artist: 'The Weeknd',
-            ),
-
-            const SongTile(
-              title: 'Believer',
-              artist: 'Imagine Dragons',
+            ...songs.map(
+              (song) => SongTile(
+                song: song,
+              ),
             ),
 
             const SizedBox(height: 30),

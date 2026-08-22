@@ -30,7 +30,26 @@ class MusicRepository {
   }
 
   List<Album> getAlbums() {
-    return const [];
+    return const [
+      Album(
+        id: '1',
+        title: 'After Hours',
+        artist: 'The Weeknd',
+        artworkUrl: '',
+      ),
+      Album(
+        id: '2',
+        title: 'Evolve',
+        artist: 'Imagine Dragons',
+        artworkUrl: '',
+      ),
+      Album(
+        id: '3',
+        title: 'Future Nostalgia',
+        artist: 'Dua Lipa',
+        artworkUrl: '',
+      ),
+    ];
   }
 
   List<Artist> getArtists() {

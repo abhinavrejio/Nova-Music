@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/theme/app_colors.dart';
-import '../../../app/theme/app_text_styles.dart';
+import '../../../models/song.dart';
 
 class SongTile extends StatelessWidget {
-  final String title;
-  final String artist;
+  final Song song;
 
   const SongTile({
     super.key,
-    required this.title,
-    required this.artist,
+    required this.song,
   });
 
   @override
@@ -19,23 +16,13 @@ class SongTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
 
       leading: const CircleAvatar(
-        backgroundColor: AppColors.primary,
-        child: Icon(
-          Icons.music_note,
-          color: Colors.white,
-        ),
+        child: Icon(Icons.music_note),
       ),
 
-      title: Text(
-        title,
-        style: AppTextStyles.body.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      title: Text(song.title),
 
       subtitle: Text(
-        artist,
-        style: AppTextStyles.caption,
+        '${song.artist} • ${song.album}',
       ),
 
       trailing: const Icon(Icons.more_vert),
