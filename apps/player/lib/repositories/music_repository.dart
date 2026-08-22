@@ -6,6 +6,9 @@ import '../models/song.dart';
 class MusicRepository {
   const MusicRepository();
 
+  // ----------------------------
+  // Songs
+  // ----------------------------
   List<Song> getSongs() {
     return const [
       Song(
@@ -16,6 +19,7 @@ class MusicRepository {
         duration: Duration(minutes: 3, seconds: 20),
         artworkUrl: '',
         source: 'mock',
+        filePath: '',
       ),
       Song(
         id: '2',
@@ -25,10 +29,24 @@ class MusicRepository {
         duration: Duration(minutes: 3, seconds: 24),
         artworkUrl: '',
         source: 'mock',
+        filePath: '',
+      ),
+      Song(
+        id: '3',
+        title: 'Starboy',
+        artist: 'The Weeknd',
+        album: 'Starboy',
+        duration: Duration(minutes: 3, seconds: 50),
+        artworkUrl: '',
+        source: 'mock',
+        filePath: '',
       ),
     ];
   }
 
+  // ----------------------------
+  // Albums
+  // ----------------------------
   List<Album> getAlbums() {
     return const [
       Album(
@@ -52,10 +70,16 @@ class MusicRepository {
     ];
   }
 
+  // ----------------------------
+  // Artists
+  // ----------------------------
   List<Artist> getArtists() {
     return const [];
   }
 
+  // ----------------------------
+  // Playlists
+  // ----------------------------
   List<Playlist> getPlaylists() {
     return const [];
   }
