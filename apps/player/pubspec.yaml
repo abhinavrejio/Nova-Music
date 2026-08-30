@@ -1,49 +1,52 @@
 name: player
-description: "Nova Music Player"
-publish_to: 'none'
+description: Nova Music Player
+publish_to: "none"
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.12.2
+  sdk: ">=3.13.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
-  flutter_riverpod: ^3.0.3
-  go_router: ^17.4.0
-
-  just_audio: ^0.10.5
-  file_picker: ^10.3.2
-
-
   cupertino_icons: ^1.0.8
-
-  # Routing
-  go_router: ^17.4.0
 
   # State Management
   flutter_riverpod: ^3.4.2
 
-  # Local Storage
+  # Routing
+  go_router: ^17.4.0
+
+  # Audio
+  media_kit: ^1.2.6
+  media_kit_libs_audio: ^1.0.7
+
+  # File Picker
+  file_picker: ^10.3.2
+
+  # Storage
   path_provider: ^2.1.6
 
-  # Equality
+  # Utilities
   equatable: ^2.1.0
-
-  # Date & Time
   intl: ^0.20.3
 
   # Fonts
-  google_fonts: ^6.3.0
+  google_fonts: ^6.3.3
+
+  # Metadata
+  flutter_media_metadata: ^1.0.0+1
+
+  #progress bar
+  audio_video_progress_bar: ^2.0.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-  build_runner: ^2.15.1
 
 flutter:
   uses-material-design: true
@@ -51,10 +54,3 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
-
-
-  # Future fonts can be added here
-  # fonts:
-  #   - family: Inter
-  #     fonts:
-  #       - asset: assets/fonts/Inter-Regular.ttf
