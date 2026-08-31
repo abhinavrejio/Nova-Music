@@ -22,6 +22,6 @@ final appTheme = ThemeData(
 
   navigationBarTheme: NavigationBarThemeData(
     backgroundColor: AppColors.surface,
-    indicatorColor: AppColors.primary.withOpacity(0.15),
+    indicatorColor: AppColors.primary.withOpacity(0.2),
   ),
 );

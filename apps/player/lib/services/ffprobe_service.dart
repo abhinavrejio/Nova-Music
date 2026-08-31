@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 class FFprobeService {
   static const String ffprobePath =
@@ -32,8 +33,8 @@ class FFprobeService {
     // Decode explicitly as UTF-8
     final jsonString = utf8.decode(stdoutBytes);
 
-    print("JSON:");
-    print(jsonString);
+    debugPrint("JSON:");
+    debugPrint(jsonString);
 
     return jsonDecode(jsonString) as Map<String, dynamic>;
   }
