@@ -23,6 +23,5 @@ class AppTextStyles {
 
   static final caption = GoogleFonts.inter(
     fontSize: 13,
-    color: Colors.grey,
   );
 }

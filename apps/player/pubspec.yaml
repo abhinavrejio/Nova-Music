@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Cupertino
   cupertino_icons: ^1.0.8
 
   # State Management
@@ -28,6 +29,7 @@ dependencies:
 
   # Storage
   path_provider: ^2.1.6
+  shared_preferences: ^2.5.3
 
   # Utilities
   equatable: ^2.1.0
@@ -39,7 +41,7 @@ dependencies:
   # Metadata
   flutter_media_metadata: ^1.0.0+1
 
-  #progress bar
+  # Progress Bar
   audio_video_progress_bar: ^2.0.3
 
 dev_dependencies:
@@ -47,8 +49,6 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-
-  shared_preferences: ^2.5.3
 
 flutter:
   uses-material-design: true

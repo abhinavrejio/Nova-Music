@@ -1,27 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import 'dark_theme.dart';
+import 'light_theme.dart';
 
-final appTheme = ThemeData(
-  useMaterial3: true,
+class AppTheme {
+  static ThemeData get light => lightTheme;
 
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: AppColors.primary,
-    brightness: Brightness.light,
-  ),
-
-  scaffoldBackgroundColor: AppColors.background,
-
-  cardTheme: CardThemeData(
-    color: AppColors.surface,
-    elevation: 2,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-    ),
-  ),
-
-  navigationBarTheme: NavigationBarThemeData(
-    backgroundColor: AppColors.surface,
-    indicatorColor: AppColors.primary.withOpacity(0.2),
-  ),
-);
+  static ThemeData get dark => darkTheme;
+}

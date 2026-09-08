@@ -1,43 +1,37 @@
-enum AppThemeMode {
-  system,
-  light,
-  dark,
-}
+import 'package:flutter/material.dart';
 
 class AppSettings {
-  final bool syncLibrary;
-  final bool listeningHistory;
+  final ThemeMode themeMode;
   final bool liquidGlass;
+  final double uiScale;
   final bool hardwareAcceleration;
 
-  final AppThemeMode themeMode;
-
   const AppSettings({
-    this.syncLibrary = true,
-    this.listeningHistory = true,
-    this.liquidGlass = true,
-    this.hardwareAcceleration = true,
-    this.themeMode = AppThemeMode.system,
+    required this.themeMode,
+    required this.liquidGlass,
+    required this.uiScale,
+    required this.hardwareAcceleration,
   });
 
   AppSettings copyWith({
-    bool? syncLibrary,
-    bool? listeningHistory,
+    ThemeMode? themeMode,
     bool? liquidGlass,
+    double? uiScale,
     bool? hardwareAcceleration,
-    AppThemeMode? themeMode,
   }) {
     return AppSettings(
-      syncLibrary: syncLibrary ?? this.syncLibrary,
-      listeningHistory:
-          listeningHistory ?? this.listeningHistory,
-      liquidGlass:
-          liquidGlass ?? this.liquidGlass,
+      themeMode: themeMode ?? this.themeMode,
+      liquidGlass: liquidGlass ?? this.liquidGlass,
+      uiScale: uiScale ?? this.uiScale,
       hardwareAcceleration:
-          hardwareAcceleration ??
-          this.hardwareAcceleration,
-      themeMode:
-          themeMode ?? this.themeMode,
+          hardwareAcceleration ?? this.hardwareAcceleration,
     );
   }
+
+  static const defaults = AppSettings(
+    themeMode: ThemeMode.system,
+    liquidGlass: true,
+    uiScale: 1.0,
+    hardwareAcceleration: true,
+  );
 }

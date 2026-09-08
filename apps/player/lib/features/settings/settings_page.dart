@@ -4,20 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/settings_provider.dart';
 
 import 'widgets/settings_section.dart';
+import 'widgets/settings_slider_tile.dart';
 import 'widgets/settings_switch_tile.dart';
 import 'widgets/settings_tile.dart';
+import 'widgets/theme_picker_dialog.dart';
 
-class SettingsPage extends ConsumerStatefulWidget {
+class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
   @override
-  ConsumerState<SettingsPage> createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends ConsumerState<SettingsPage> {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
+    final notifier = ref.read(settingsProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
@@ -25,87 +23,42 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 700,
-          ),
+          constraints: const BoxConstraints(maxWidth: 700),
           child: ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
+              /// GENERAL
               SettingsSection(
                 title: "General",
-                children: [
-                  const SettingsTile(
+                children: const [
+                  SettingsTile(
                     icon: Icons.person_outline,
                     title: "Sign In",
                     subtitle: "Not signed in",
                   ),
-                  SettingsSwitchTile(
-                    icon: Icons.sync,
-                    title: "Sync Library",
-                    value: settings.syncLibrary,
-                    onChanged: (value) {
-                      ref.read(settingsProvider.notifier).update(
-                            settings.copyWith(
-                              syncLibrary: value,
-                            ),
-                          );
-                    },
-                  ),
-                  SettingsSwitchTile(
-                    icon: Icons.history,
-                    title: "Listening History",
-                    value: settings.listeningHistory,
-                    onChanged: (value) {
-                      ref.read(settingsProvider.notifier).update(
-                            settings.copyWith(
-                              listeningHistory: value,
-                            ),
-                          );
-                    },
-                  ),
                 ],
               ),
 
               const SizedBox(height: 20),
 
-              SettingsSection(
-                title: "Appearance",
-                children: [
-                  SettingsTile(
-                    icon: Icons.dark_mode_outlined,
-                    title: "Theme",
-                    subtitle:
-                        settings.themeMode.name.toUpperCase(),
-                  ),
-                  SettingsSwitchTile(
-                    icon: Icons.blur_on,
-                    title: "Liquid Glass",
-                    value: settings.liquidGlass,
-                    onChanged: (value) {
-                      ref.read(settingsProvider.notifier).update(
-                            settings.copyWith(
-                              liquidGlass: value,
-                            ),
-                          );
-                    },
-                  ),
-                  SettingsSwitchTile(
-                    icon: Icons.memory,
-                    title: "Hardware Acceleration",
-                    value: settings.hardwareAcceleration,
-                    onChanged: (value) {
-                      ref.read(settingsProvider.notifier).update(
-                            settings.copyWith(
-                              hardwareAcceleration: value,
-                            ),
-                          );
-                    },
-                  ),
-                ],
-              ),
+              /// APPEARANCE
+              SettingsTile(
+  icon: Icons.dark_mode_outlined,
+  title: "Theme",
+  subtitle: settings.themeMode.name.toUpperCase(),
+  onTap: () async {
+    final mode = await showThemePickerDialog(
+      context,
+      settings.themeMode,
+    );
 
-              const SizedBox(height: 20),
+    if (mode != null) {
+      await notifier.setThemeMode(mode);
+    }
+  },
+),
 
+              /// LIBRARY
               const SettingsSection(
                 title: "Library",
                 children: [
@@ -122,6 +75,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
               const SizedBox(height: 20),
 
+              /// PLAYBACK
               const SettingsSection(
                 title: "Playback",
                 children: [

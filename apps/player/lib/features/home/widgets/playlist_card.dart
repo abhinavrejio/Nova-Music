@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/theme/app_colors.dart';
-import '../../../app/theme/app_text_styles.dart';
+import '../../../app/theme/colors.dart';
 
 class PlaylistCard extends StatelessWidget {
   final String title;
@@ -13,6 +12,8 @@ class PlaylistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
 
@@ -27,17 +28,20 @@ class PlaylistCard extends StatelessWidget {
 
         title: Text(
           title,
-          style: AppTextStyles.body.copyWith(
+          style: theme.textTheme.bodyLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
 
         subtitle: Text(
           'Playlist',
-          style: AppTextStyles.caption,
+          style: theme.textTheme.bodySmall,
         ),
 
-        trailing: const Icon(Icons.chevron_right),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
