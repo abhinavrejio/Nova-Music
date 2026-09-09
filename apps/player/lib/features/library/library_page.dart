@@ -6,7 +6,8 @@ import '../../providers/current_song_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/library_folder_provider.dart';
 import '../../providers/local_music_provider.dart';
-
+import '../../providers/queue_provider.dart';
+import '../../providers/queue_index_provider.dart';
 import '../player/player_page.dart';
 
 class LibraryPage extends ConsumerWidget {
@@ -84,23 +85,30 @@ class LibraryPage extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   trailing: const Icon(Icons.play_arrow),
-                  onTap: () async {
-                    ref.read(currentSongProvider.notifier).setSong(song);
+onTap: () async {
+  // Save the whole library as the play queue.
+  ref.read(queueProvider.notifier).setQueue(songs);
 
-                    await ref
-                        .read(audioPlayerProvider)
-                        .openFile(song.path);
+  // Remember which song was tapped.
+  final index = songs.indexWhere((s) => s.path == song.path);
+  ref.read(queueIndexProvider.notifier).setIndex(index);
 
-                    if (context.mounted) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const PlayerPage(),
-                        ),
-                      );
-                    }
-                  },
-                );
+  // Set current song.
+  ref.read(currentSongProvider.notifier).setSong(song);
+
+  // Play it.
+  await ref.read(audioPlayerProvider).openFile(song.path);
+
+    if (context.mounted) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PlayerPage(),
+      ),
+    );
+  }
+},
+);
               },
             ),
     );

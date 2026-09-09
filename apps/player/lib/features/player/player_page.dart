@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../providers/current_song_provider.dart';
 import '../../providers/playback_provider.dart';
+import '../../providers/playback_mode_provider.dart';
+import '../../providers/playback_controller_provider.dart';
 
 class PlayerPage extends ConsumerWidget {
   const PlayerPage({super.key});
@@ -43,6 +45,8 @@ class PlayerPage extends ConsumerWidget {
               final service = ref.read(audioPlayerProvider);
 
               final isPlaying = playing.value ?? service.isPlaying;
+              final shuffle = ref.watch(shuffleProvider);
+final repeatMode = ref.watch(repeatModeProvider);
 
               return Column(
                 children: [
@@ -107,19 +111,70 @@ class PlayerPage extends ConsumerWidget {
 
                   const SizedBox(height: 8),
 
-                  IconButton(
-                    iconSize: 72,
-                    icon: Icon(
-                      isPlaying
-                          ? Icons.pause_circle_filled
-                          : Icons.play_circle_fill,
-                    ),
-                    onPressed: () {
-                      ref.read(audioPlayerProvider).togglePlayPause();
-                    },
-                  ),
+                  const SizedBox(height: 20),
 
-                  const SizedBox(height: 8),
+Row(
+  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  children: [
+    IconButton(
+      icon: Icon(
+        Icons.shuffle,
+        color: shuffle
+            ? Theme.of(context).colorScheme.primary
+            : null,
+      ),
+      onPressed: () {
+        ref.read(shuffleProvider.notifier).toggle();
+      },
+    ),
+
+    IconButton(
+      icon: const Icon(Icons.skip_previous),
+      iconSize: 42,
+      onPressed: () async {
+        await ref.read(playbackControllerProvider).previous();
+      },
+    ),
+
+    IconButton(
+      icon: Icon(
+        isPlaying
+            ? Icons.pause_circle_filled
+            : Icons.play_circle_fill,
+      ),
+      iconSize: 72,
+      onPressed: () {
+        ref.read(audioPlayerProvider).togglePlayPause();
+      },
+    ),
+
+    IconButton(
+      icon: const Icon(Icons.skip_next),
+      iconSize: 42,
+      onPressed: () async {
+        await ref.read(playbackControllerProvider).next();
+      },
+    ),
+
+    IconButton(
+      icon: Icon(
+        repeatMode == PlaybackRepeatMode.off
+            ? Icons.repeat
+            : repeatMode == PlaybackRepeatMode.one
+                ? Icons.repeat_one
+                : Icons.repeat,
+        color: repeatMode == PlaybackRepeatMode.off
+            ? null
+            : Theme.of(context).colorScheme.primary,
+      ),
+      onPressed: () {
+        ref.read(repeatModeProvider.notifier).nextMode();
+      },
+    ),
+  ],
+),
+
+const SizedBox(height: 20),
                 ],
               );
             },
