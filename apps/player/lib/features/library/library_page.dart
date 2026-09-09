@@ -3,50 +3,54 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/audio_player_provider.dart';
 import '../../providers/current_song_provider.dart';
-import '../../repositories/library_repository.dart';
-import '../player/player_page.dart';
+import '../../providers/library_provider.dart';
+import '../../providers/library_folder_provider.dart';
 import '../../providers/local_music_provider.dart';
-import '../../services/library_builder.dart';
+
+import '../player/player_page.dart';
 
 class LibraryPage extends ConsumerWidget {
   const LibraryPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final songs = LibraryRepository.instance.songs;
-    debugPrint("Library contains ${songs.length} songs");
+    final songs = ref.watch(libraryProvider);
 
     return Scaffold(
       appBar: AppBar(
-  title: const Text("Library"),
-  actions: [
-  IconButton(
-    icon: const Icon(Icons.folder_open),
-    onPressed: () async {
-      debugPrint("Folder button pressed");
+        title: Text("Library (${songs.length})"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.folder_open),
+            tooltip: "Add Music Folder",
+            onPressed: () async {
+              debugPrint("Folder button pressed");
 
-      final picker = ref.read(localMusicProvider);
+              final picker = ref.read(localMusicProvider);
 
-      final folder = await picker.pickMusicFolder();
+              final folder = await picker.pickMusicFolder();
 
-      debugPrint("Folder: $folder");
+              if (folder == null) {
+                return;
+              }
 
-      if (folder == null) return;
+              // Save the folder permanently.
+              await ref
+                  .read(libraryFolderProvider.notifier)
+                  .addFolder(folder);
 
-      await LibraryBuilder().buildLibrary(folder);
-
-      if (context.mounted) {
-        (context as Element).markNeedsBuild();
-      }
-    },
-  ), // <-- closes IconButton
-],   // <-- closes actions list
-),    // <-- closes AppBar
-
-body: songs.isEmpty
+              // Scan only this folder.
+              await ref
+                  .read(libraryProvider.notifier)
+                  .scanFolder(folder);
+            },
+          ),
+        ],
+      ),
+      body: songs.isEmpty
           ? const Center(
               child: Text(
-                "No songs imported.\nUse 'Pick & Play Song' first.",
+                "No music found.\n\nClick the folder icon above to add a music folder.",
                 textAlign: TextAlign.center,
               ),
             )
@@ -61,21 +65,25 @@ body: songs.isEmpty
                           borderRadius: BorderRadius.circular(8),
                           child: Image.memory(
                             song.artwork!,
-                            width: 50,
-                            height: 50,
+                            width: 52,
+                            height: 52,
                             fit: BoxFit.cover,
                           ),
                         )
                       : const CircleAvatar(
                           child: Icon(Icons.music_note),
                         ),
-
-                  title: Text(song.title),
-
-                  subtitle: Text(song.artist),
-
+                  title: Text(
+                    song.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    song.artist,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   trailing: const Icon(Icons.play_arrow),
-
                   onTap: () async {
                     ref.read(currentSongProvider.notifier).setSong(song);
 

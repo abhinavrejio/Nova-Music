@@ -4,12 +4,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/settings_provider.dart';
 import 'config/router/app_router.dart';
 import 'theme/app_theme.dart';
+import '../providers/startup_provider.dart';
 
-class NovaMusicApp extends ConsumerWidget {
+class NovaMusicApp extends ConsumerStatefulWidget {
   const NovaMusicApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NovaMusicApp> createState() => _NovaMusicAppState();
+}
+class _NovaMusicAppState extends ConsumerState<NovaMusicApp> {
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      ref.read(startupProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
 
     return MaterialApp.router(

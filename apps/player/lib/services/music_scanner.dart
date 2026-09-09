@@ -23,14 +23,13 @@ class MusicScanner {
       recursive: true,
       followLinks: false,
     )) {
-      if (entity is File) {
-        final extension = entity.path
-            .substring(entity.path.lastIndexOf('.'))
-            .toLowerCase();
+      if (entity is! File) continue;
 
-        if (_extensions.contains(extension)) {
-          files.add(entity);
-        }
+      final extension =
+          entity.path.substring(entity.path.lastIndexOf('.')).toLowerCase();
+
+      if (_extensions.contains(extension)) {
+        files.add(entity);
       }
     }
 

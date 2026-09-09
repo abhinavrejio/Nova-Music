@@ -1,11 +1,12 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/library_folder_provider.dart';
+import '../../providers/library_provider.dart';
 import '../../providers/settings_provider.dart';
 
 import 'widgets/settings_section.dart';
-import 'widgets/settings_slider_tile.dart';
-import 'widgets/settings_switch_tile.dart';
 import 'widgets/settings_tile.dart';
 import 'widgets/theme_picker_dialog.dart';
 
@@ -15,7 +16,10 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
-    final notifier = ref.read(settingsProvider.notifier);
+    final settingsNotifier = ref.read(settingsProvider.notifier);
+
+    final folders = ref.watch(libraryFolderProvider);
+    final folderNotifier = ref.read(libraryFolderProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
@@ -27,10 +31,14 @@ class SettingsPage extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
-              /// GENERAL
-              SettingsSection(
+
+              //----------------------------------------------------------
+              // GENERAL
+              //----------------------------------------------------------
+
+              const SettingsSection(
                 title: "General",
-                children: const [
+                children: [
                   SettingsTile(
                     icon: Icons.person_outline,
                     title: "Sign In",
@@ -41,41 +49,112 @@ class SettingsPage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              /// APPEARANCE
+              //----------------------------------------------------------
+              // APPEARANCE
+              //----------------------------------------------------------
+
               SettingsTile(
-  icon: Icons.dark_mode_outlined,
-  title: "Theme",
-  subtitle: settings.themeMode.name.toUpperCase(),
-  onTap: () async {
-    final mode = await showThemePickerDialog(
-      context,
-      settings.themeMode,
-    );
+                icon: Icons.dark_mode_outlined,
+                title: "Theme",
+                subtitle: settings.themeMode.name.toUpperCase(),
+                onTap: () async {
+                  final mode = await showThemePickerDialog(
+                    context,
+                    settings.themeMode,
+                  );
 
-    if (mode != null) {
-      await notifier.setThemeMode(mode);
-    }
-  },
-),
+                  if (mode != null) {
+                    await settingsNotifier.setThemeMode(mode);
+                  }
+                },
+              ),
 
-              /// LIBRARY
-              const SettingsSection(
+              const SizedBox(height: 20),
+
+              //----------------------------------------------------------
+              // LIBRARY
+              //----------------------------------------------------------
+
+              SettingsSection(
                 title: "Library",
                 children: [
-                  SettingsTile(
-                    icon: Icons.folder_outlined,
-                    title: "Music Folders",
+
+                  ...folders.map(
+                    (folder) => ListTile(
+                      leading: const Icon(Icons.folder_outlined),
+                      title: Text(folder.path),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () async {
+                          await folderNotifier.removeFolder(folder.path);
+
+                          await ref
+                              .read(libraryProvider.notifier)
+                              .rescanAll();
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Folder removed."),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
                   ),
-                  SettingsTile(
-                    icon: Icons.refresh,
-                    title: "Scan Library",
+
+                  ListTile(
+                    leading: const Icon(Icons.add),
+                    title: const Text("Add Folder"),
+                    onTap: () async {
+                      final path =
+                          await FilePicker.platform.getDirectoryPath();
+
+                      if (path == null) return;
+
+                      await folderNotifier.addFolder(path);
+
+                      await ref
+                          .read(libraryProvider.notifier)
+                          .scanFolder(path);
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Folder added successfully."),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+
+                  ListTile(
+                    leading: const Icon(Icons.refresh),
+                    title: const Text("Rescan Library"),
+                    onTap: () async {
+                      await ref
+                          .read(libraryProvider.notifier)
+                          .rescanAll();
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Library rescanned."),
+                          ),
+                        );
+                      }
+                    },
                   ),
                 ],
               ),
 
               const SizedBox(height: 20),
 
-              /// PLAYBACK
+              //----------------------------------------------------------
+              // PLAYBACK
+              //----------------------------------------------------------
+
               const SettingsSection(
                 title: "Playback",
                 children: [
