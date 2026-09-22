@@ -9,6 +9,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
   static const _glassKey = "liquid_glass";
   static const _zoomKey = "ui_scale";
   static const _hardwareKey = "hardware_acceleration";
+  static const _autoPlayKey = "auto_play";
+  static const _qualityKey = "high_quality_audio";
+  static const _volumeBoostKey = "volume_boost";
 
   @override
   AppSettings build() {
@@ -20,13 +23,17 @@ class SettingsNotifier extends Notifier<AppSettings> {
     final prefs = await SharedPreferences.getInstance();
 
     final themeIndex = prefs.getInt(_themeKey) ?? ThemeMode.system.index;
+    final storedUiScale = prefs.getDouble(_zoomKey) ?? 1.0;
 
     state = state.copyWith(
       themeMode: ThemeMode.values[themeIndex],
       liquidGlass: prefs.getBool(_glassKey) ?? true,
-      uiScale: prefs.getDouble(_zoomKey) ?? 1.0,
+      uiScale: storedUiScale,
       hardwareAcceleration:
           prefs.getBool(_hardwareKey) ?? true,
+        autoPlay: prefs.getBool(_autoPlayKey) ?? true,
+        highQualityAudio: prefs.getBool(_qualityKey) ?? true,
+        volumeBoost: prefs.getDouble(_volumeBoostKey) ?? 80,
     );
   }
 
@@ -45,20 +52,40 @@ class SettingsNotifier extends Notifier<AppSettings> {
   }
 
   Future<void> setUiScale(double value) async {
-  state = state.copyWith(uiScale: value);
+    final safeValue = value.clamp(0.9, 1.2);
+    state = state.copyWith(uiScale: safeValue);
 
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setDouble(_zoomKey, value);
-}
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_zoomKey, safeValue);
+  }
 
-Future<void> setHardwareAcceleration(bool value) async {
-  state = state.copyWith(
-    hardwareAcceleration: value,
-  );
+  Future<void> setHardwareAcceleration(bool value) async {
+    state = state.copyWith(
+      hardwareAcceleration: value,
+    );
 
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setBool(_hardwareKey, value);
-}
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hardwareKey, value);
+  }
+
+  Future<void> setAutoPlay(bool value) async {
+    state = state.copyWith(autoPlay: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoPlayKey, value);
+  }
+
+  Future<void> setHighQualityAudio(bool value) async {
+    state = state.copyWith(highQualityAudio: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_qualityKey, value);
+  }
+
+  Future<void> setVolumeBoost(double value) async {
+    final safeValue = value.clamp(0, 100).toDouble();
+    state = state.copyWith(volumeBoost: safeValue);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_volumeBoostKey, safeValue);
+  }
 }
 
 final settingsProvider =

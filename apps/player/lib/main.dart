@@ -6,8 +6,11 @@ import 'package:media_kit/media_kit.dart';
 import 'app/app.dart';
 
 void main() {
-  // Initialize MediaKit
-  MediaKit.ensureInitialized();
+  try {
+    MediaKit.ensureInitialized();
+  } catch (_) {
+    // Keep the UI available when native audio libraries are unavailable.
+  }
 
   runApp(
     const ProviderScope(

@@ -8,6 +8,7 @@ import 'current_song_provider.dart';
 import 'queue_provider.dart';
 import 'queue_index_provider.dart';
 import 'playback_mode_provider.dart';
+import '../settings_provider.dart';
 
 class PlaybackController {
   PlaybackController(this.ref);
@@ -25,7 +26,7 @@ class PlaybackController {
     _completedSubscription = player.stream.completed.listen(
       (completed) async {
         if (completed) {
-          await next();
+          await next(fromCompletion: true);
         }
       },
     );
@@ -36,46 +37,63 @@ class PlaybackController {
     ref.read(queueIndexProvider.notifier).setIndex(index);
     ref.read(currentSongProvider.notifier).setSong(song);
 
-    await ref.read(audioPlayerProvider).openFile(song.path);
+    await ref.read(audioPlayerProvider).openFile(
+      song.path,
+      play: ref.read(settingsProvider).autoPlay,
+    );
   }
 
   /// Play the next song.
-  Future<void> next() async {
-  final queue = ref.read(queueProvider);
+  Future<void> next({bool fromCompletion = false}) async {
+    final queue = ref.read(queueProvider);
 
-  if (queue.isEmpty) return;
+    if (queue.isEmpty) return;
 
-  final shuffle = ref.read(shuffleProvider);
-
-  int nextIndex;
-
-  if (shuffle) {
-    if (queue.length == 1) {
-      nextIndex = 0;
-    } else {
-      final current = ref.read(queueIndexProvider);
-
-      do {
-        nextIndex = DateTime.now().millisecondsSinceEpoch % queue.length;
-      } while (nextIndex == current);
-    }
-  } else {
+    final repeatMode = ref.read(repeatModeProvider);
     final current = ref.read(queueIndexProvider);
 
-    if (current >= queue.length - 1) {
+    if (fromCompletion && repeatMode == PlaybackRepeatMode.one) {
+      final currentSong = queue[current];
+      await ref.read(audioPlayerProvider).openFile(
+        currentSong.path,
+        play: ref.read(settingsProvider).autoPlay,
+      );
       return;
     }
 
-    nextIndex = current + 1;
+    final shuffle = ref.read(shuffleProvider);
+    int nextIndex;
+
+    if (shuffle) {
+      if (queue.length == 1) {
+        nextIndex = 0;
+      } else {
+        do {
+          nextIndex = DateTime.now().millisecondsSinceEpoch % queue.length;
+        } while (nextIndex == current);
+      }
+    } else {
+      if (current >= queue.length - 1) {
+        if (fromCompletion && repeatMode == PlaybackRepeatMode.all) {
+          nextIndex = 0;
+        } else {
+          return;
+        }
+      } else {
+        nextIndex = current + 1;
+      }
+    }
+
+    final nextSong = queue[nextIndex];
+
+    ref.read(queueIndexProvider.notifier).setIndex(nextIndex);
+    ref.read(currentSongProvider.notifier).setSong(nextSong);
+
+    await ref.read(audioPlayerProvider).openFile(
+      nextSong.path,
+      play: ref.read(settingsProvider).autoPlay,
+    );
   }
-
-  final nextSong = queue[nextIndex];
-
-  ref.read(queueIndexProvider.notifier).setIndex(nextIndex);
-  ref.read(currentSongProvider.notifier).setSong(nextSong);
-
-  await ref.read(audioPlayerProvider).openFile(nextSong.path);
-}
 
   /// Play the previous song.
   Future<void> previous() async {

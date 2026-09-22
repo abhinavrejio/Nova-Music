@@ -5,6 +5,8 @@ class CurrentSong {
   final String title;
   final String artist;
   final String album;
+  final String genre;
+  final DateTime? importedAt;
   final Duration duration;
   final Uint8List? artwork;
 
@@ -13,6 +15,8 @@ class CurrentSong {
     required this.title,
     required this.artist,
     required this.album,
+    this.genre = '',
+    this.importedAt,
     required this.duration,
     this.artwork,
   });
@@ -22,6 +26,8 @@ class CurrentSong {
     String? title,
     String? artist,
     String? album,
+    String? genre,
+    DateTime? importedAt,
     Duration? duration,
     Uint8List? artwork,
   }) {
@@ -30,6 +36,8 @@ class CurrentSong {
       title: title ?? this.title,
       artist: artist ?? this.artist,
       album: album ?? this.album,
+      genre: genre ?? this.genre,
+      importedAt: importedAt ?? this.importedAt,
       duration: duration ?? this.duration,
       artwork: artwork ?? this.artwork,
     );
