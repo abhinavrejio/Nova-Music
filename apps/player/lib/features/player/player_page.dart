@@ -7,6 +7,7 @@ import '../../providers/current_song_provider.dart';
 import '../../providers/playback_provider.dart';
 import '../../providers/playback_mode_provider.dart';
 import '../../providers/playback_controller_provider.dart';
+import '../../providers/favorites_provider.dart';
 
 class PlayerPage extends ConsumerWidget {
   const PlayerPage({super.key});
@@ -29,10 +30,26 @@ class PlayerPage extends ConsumerWidget {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Now Playing"),
+    final favorites = ref.watch(favoritesProvider);
+final isFavorite = favorites.contains(song.path);
+
+return Scaffold(
+  appBar: AppBar(
+    title: const Text("Now Playing"),
+    actions: [
+      IconButton(
+        icon: Icon(
+          isFavorite
+              ? Icons.favorite
+              : Icons.favorite_border,
+          color: isFavorite ? Colors.red : null,
+        ),
+        onPressed: () {
+          ref.read(favoritesProvider.notifier).toggle(song.path);
+        },
       ),
+    ],
+  ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),

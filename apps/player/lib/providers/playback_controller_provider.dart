@@ -101,15 +101,6 @@ class PlaybackController {
     _completedSubscription?.cancel();
   }
 }
-
 final playbackControllerProvider = Provider<PlaybackController>(
-  (ref) {
-    final controller = PlaybackController(ref);
-
-    controller.startListening();
-
-    ref.onDispose(controller.dispose);
-
-    return controller;
-  },
+  (ref) => PlaybackController(ref),
 );

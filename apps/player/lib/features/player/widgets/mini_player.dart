@@ -1,9 +1,9 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../providers/audio_player_provider.dart';
 import '../../../providers/current_song_provider.dart';
+import '../player_page.dart';
 
 class MiniPlayer extends ConsumerWidget {
   const MiniPlayer({super.key});
@@ -16,20 +16,47 @@ class MiniPlayer extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    final player = ref.watch(audioPlayerProvider);
+
     return Material(
+      color: Theme.of(context).colorScheme.surface,
       elevation: 8,
-      color: Colors.deepPurple,
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(context, '/player');
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const PlayerPage(),
+            ),
+          );
         },
-        child: SizedBox(
+        child: Container(
           height: 72,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
           child: Row(
             children: [
-              const SizedBox(width: 12),
-
-              _AlbumArtwork(song.artwork),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: song.artwork != null
+                      ? Image.memory(
+                          song.artwork!,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          color: Colors.deepPurple,
+                          child: const Icon(
+                            Icons.music_note,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
 
               const SizedBox(width: 12),
 
@@ -43,72 +70,33 @@ class MiniPlayer extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
                       ),
                     ),
                     Text(
-                      song.artist,
+                      song.artist.isEmpty
+                          ? "Unknown Artist"
+                          : song.artist,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                      ),
                     ),
                   ],
                 ),
               ),
 
               IconButton(
-                onPressed: () {
-                  // We'll connect this later.
-                },
-                icon: const Icon(
-                  Icons.pause,
-                  color: Colors.white,
+                icon: Icon(
+                  player.isPlaying
+                      ? Icons.pause
+                      : Icons.play_arrow,
                 ),
+                onPressed: () {
+                  player.togglePlayPause();
+                },
               ),
-
-              const SizedBox(width: 10),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _AlbumArtwork extends StatelessWidget {
-  final Uint8List? artwork;
-
-  const _AlbumArtwork(this.artwork);
-
-  @override
-  Widget build(BuildContext context) {
-    if (artwork != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.memory(
-          artwork!,
-          width: 54,
-          height: 54,
-          fit: BoxFit.cover,
-        ),
-      );
-    }
-
-    return Container(
-      width: 54,
-      height: 54,
-      decoration: BoxDecoration(
-        color: Colors.deepPurple.shade300,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: const Icon(
-        Icons.music_note,
-        color: Colors.white,
       ),
     );
   }

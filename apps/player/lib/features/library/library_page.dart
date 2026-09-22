@@ -9,6 +9,7 @@ import '../../providers/local_music_provider.dart';
 import '../../providers/queue_provider.dart';
 import '../../providers/queue_index_provider.dart';
 import '../player/player_page.dart';
+import '../../providers/favorites_provider.dart';
 
 class LibraryPage extends ConsumerWidget {
   const LibraryPage({super.key});
@@ -84,7 +85,24 @@ class LibraryPage extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: const Icon(Icons.play_arrow),
+                  trailing: Consumer(
+  builder: (context, ref, _) {
+    final favorites = ref.watch(favoritesProvider);
+    final isFavorite = favorites.contains(song.path);
+
+    return IconButton(
+      icon: Icon(
+        isFavorite
+            ? Icons.favorite
+            : Icons.favorite_border,
+        color: isFavorite ? Colors.red : null,
+      ),
+      onPressed: () {
+        ref.read(favoritesProvider.notifier).toggle(song.path);
+      },
+    );
+  },
+),
 onTap: () async {
   // Save the whole library as the play queue.
   ref.read(queueProvider.notifier).setQueue(songs);
