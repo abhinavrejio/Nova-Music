@@ -10,6 +10,8 @@ import '../../providers/queue_provider.dart';
 import '../../providers/queue_index_provider.dart';
 import '../player/player_page.dart';
 import '../../providers/favorites_provider.dart';
+import 'pages/liked_songs_page.dart';
+import '../../providers/liked_songs_provider.dart';
 
 class LibraryPage extends ConsumerWidget {
   const LibraryPage({super.key});
@@ -50,16 +52,43 @@ class LibraryPage extends ConsumerWidget {
         ],
       ),
       body: songs.isEmpty
-          ? const Center(
-              child: Text(
-                "No music found.\n\nClick the folder icon above to add a music folder.",
-                textAlign: TextAlign.center,
+    ? const Center(
+        child: Text(
+          "No music found.\n\nClick the folder icon above to add a music folder.",
+          textAlign: TextAlign.center,
+        ),
+      )
+    : Column(
+        children: [
+          Card(
+            margin: const EdgeInsets.all(12),
+            child: ListTile(
+              leading: const CircleAvatar(
+                child: Icon(Icons.favorite),
               ),
-            )
-          : ListView.builder(
+              title: const Text("Liked Songs"),
+              subtitle: Text(
+                "${ref.watch(likedSongsProvider).length} songs",
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LikedSongsPage(),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          Expanded(
+            child: ListView.builder(
               itemCount: songs.length,
               itemBuilder: (context, index) {
                 final song = songs[index];
+
+                // ↓↓↓ PASTE EVERYTHING FROM YOUR CURRENT ListTile HERE ↓↓↓
 
                 return ListTile(
                   leading: song.artwork != null
@@ -122,13 +151,16 @@ onTap: () async {
       context,
       MaterialPageRoute(
         builder: (_) => const PlayerPage(),
-      ),
-    );
-  }
-},
-);
-              },
             ),
-    );
+                  );
+                }
+              },
+            );
+          },
+        ),
+      ),
+    ],
+  ),
+);
   }
 }

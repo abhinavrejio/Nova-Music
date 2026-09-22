@@ -4,37 +4,51 @@ Future<ThemeMode?> showThemePickerDialog(
   BuildContext context,
   ThemeMode current,
 ) {
+  ThemeMode selected = current;
+
   return showDialog<ThemeMode>(
     context: context,
     builder: (context) {
-      return SimpleDialog(
-        title: const Text("Choose Theme"),
-        children: [
-          RadioListTile<ThemeMode>(
-            title: const Text("System"),
-            value: ThemeMode.system,
-            groupValue: current,
-            onChanged: (value) {
-              Navigator.pop(context, value);
-            },
-          ),
-          RadioListTile<ThemeMode>(
-            title: const Text("Light"),
-            value: ThemeMode.light,
-            groupValue: current,
-            onChanged: (value) {
-              Navigator.pop(context, value);
-            },
-          ),
-          RadioListTile<ThemeMode>(
-            title: const Text("Dark"),
-            value: ThemeMode.dark,
-            groupValue: current,
-            onChanged: (value) {
-              Navigator.pop(context, value);
-            },
-          ),
-        ],
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Choose Theme'),
+            content: RadioGroup<ThemeMode>(
+              groupValue: selected,
+              onChanged: (ThemeMode? value) {
+                if (value == null) return;
+                setState(() => selected = value);
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  RadioListTile<ThemeMode>(
+                    value: ThemeMode.system,
+                    title: Text('System'),
+                  ),
+                  RadioListTile<ThemeMode>(
+                    value: ThemeMode.light,
+                    title: Text('Light'),
+                  ),
+                  RadioListTile<ThemeMode>(
+                    value: ThemeMode.dark,
+                    title: Text('Dark'),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, selected),
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
       );
     },
   );
