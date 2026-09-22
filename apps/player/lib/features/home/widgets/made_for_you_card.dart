@@ -15,10 +15,9 @@ class MadeForYouCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 140,
-      height: 136,
+      width: 180,
       margin: const EdgeInsets.only(right: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         gradient: const LinearGradient(
@@ -31,41 +30,30 @@ class MadeForYouCard extends StatelessWidget {
         ),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 18,
             backgroundColor: Colors.white24,
-            child: Icon(icon, color: Colors.white, size: 20),
+            child: Icon(icon, color: Colors.white),
           ),
 
-          const SizedBox(height: 12),
+          const Spacer(),
 
-          Flexible(
-            child: Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
           ),
 
-          const SizedBox(height: 2),
+          const SizedBox(height: 6),
 
-          Flexible(
-            child: Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-              ),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: Colors.white70,
             ),
           ),
         ],

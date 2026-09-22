@@ -7,6 +7,7 @@ import '../../../features/search/search_page.dart';
 import '../../../features/library/library_page.dart';
 import '../../../features/player/queue_page.dart';
 import '../../../features/settings/settings_page.dart';
+import '../../../features/library/pages/songs_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -46,6 +47,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/queue',
       builder: (context, state) => const QueuePage(),
+    ),
+
+    GoRoute(
+      path: '/songs',
+      builder: (context, state) => const SongsPage(),
     ),
   ],
 );
