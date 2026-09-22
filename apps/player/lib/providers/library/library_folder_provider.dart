@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/library_folder.dart';
-import '../services/library_folder_service.dart';
+import '../../models/library_folder.dart';
+import '../../services/library_folder_service.dart';
 
 class LibraryFolderNotifier extends Notifier<List<LibraryFolder>> {
   final LibraryFolderService _service = LibraryFolderService();

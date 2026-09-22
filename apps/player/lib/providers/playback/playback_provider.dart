@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'audio_player_provider.dart';
+import '../audio/audio_player_provider.dart';
 
 final positionProvider = StreamProvider<Duration>((ref) {
   final player = ref.watch(audioPlayerProvider).player;

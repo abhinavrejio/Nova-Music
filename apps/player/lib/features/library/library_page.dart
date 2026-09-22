@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../providers/audio_player_provider.dart';
-import '../../providers/current_song_provider.dart';
-import '../../providers/library_provider.dart';
-import '../../providers/library_folder_provider.dart';
-import '../../providers/local_music_provider.dart';
-import '../../providers/queue_provider.dart';
-import '../../providers/queue_index_provider.dart';
+import '../../providers/audio/audio_player_provider.dart';
+import '../../providers/playback/current_song_provider.dart';
+import '../../providers/library/library_provider.dart';
+import '../../providers/library/library_folder_provider.dart';
+import '../../providers/library/local_music_provider.dart';
+import '../../providers/playback/queue_provider.dart';
+import '../../providers/playback/queue_index_provider.dart';
 import '../player/player_page.dart';
-import '../../providers/favorites_provider.dart';
+import '../../providers/playlists/favorites_provider.dart';
 import 'pages/liked_songs_page.dart';
-import '../../providers/liked_songs_provider.dart';
+import '../../providers/library/liked_songs_provider.dart';
 
 class LibraryPage extends ConsumerWidget {
   const LibraryPage({super.key});

@@ -2,8 +2,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../providers/library_folder_provider.dart';
-import '../../providers/library_provider.dart';
+import '../../providers/library/library_folder_provider.dart';
+import '../../providers/library/library_provider.dart';
 import '../../providers/settings_provider.dart';
 
 import 'widgets/settings_section.dart';

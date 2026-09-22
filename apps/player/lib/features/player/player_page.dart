@@ -2,12 +2,12 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../providers/audio_player_provider.dart';
-import '../../providers/current_song_provider.dart';
-import '../../providers/playback_provider.dart';
-import '../../providers/playback_mode_provider.dart';
-import '../../providers/playback_controller_provider.dart';
-import '../../providers/favorites_provider.dart';
+import '../../providers/audio/audio_player_provider.dart';
+import '../../providers/playback/current_song_provider.dart';
+import '../../providers/playback/playback_provider.dart';
+import '../../providers/playback/playback_mode_provider.dart';
+import '../../providers/playback/playback_controller_provider.dart';
+import '../../providers/playlists/favorites_provider.dart';
 
 class PlayerPage extends ConsumerWidget {
   const PlayerPage({super.key});

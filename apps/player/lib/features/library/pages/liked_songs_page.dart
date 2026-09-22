@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../providers/audio_player_provider.dart';
-import '../../../providers/current_song_provider.dart';
-import '../../../providers/liked_songs_provider.dart';
-import '../../../providers/queue_provider.dart';
-import '../../../providers/queue_index_provider.dart';
+import '../../../providers/audio/audio_player_provider.dart';
+import '../../../providers/playback/current_song_provider.dart';
+import '../../../providers/library/liked_songs_provider.dart';
+import '../../../providers/playback/queue_provider.dart';
+import '../../../providers/playback/queue_index_provider.dart';
 
 import '../../player/player_page.dart';
 

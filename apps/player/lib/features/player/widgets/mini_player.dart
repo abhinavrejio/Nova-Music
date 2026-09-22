@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../providers/audio_player_provider.dart';
-import '../../../providers/current_song_provider.dart';
+import '../../../providers/audio/audio_player_provider.dart';
+import '../../../providers/playback/current_song_provider.dart';
 import '../player_page.dart';
 
 class MiniPlayer extends ConsumerWidget {

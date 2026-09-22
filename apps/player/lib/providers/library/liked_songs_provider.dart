@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/current_song.dart';
-import 'favorites_provider.dart';
+import '../../models/current_song.dart';
+import '../playlists/favorites_provider.dart';
 import 'library_provider.dart';
 
 final likedSongsProvider = Provider<List<CurrentSong>>((ref) {

@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/current_song.dart';
-import '../services/library_builder.dart';
-import '../services/library_folder_service.dart';
+import '../../models/current_song.dart';
+import '../../services/library_builder.dart';
+import '../../services/library_folder_service.dart';
 
 class LibraryNotifier extends Notifier<List<CurrentSong>> {
   @override

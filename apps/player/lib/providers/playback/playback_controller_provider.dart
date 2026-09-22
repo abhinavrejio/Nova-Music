@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/current_song.dart';
-import 'audio_player_provider.dart';
+import '../../models/current_song.dart';
+import '../audio/audio_player_provider.dart';
 import 'current_song_provider.dart';
 import 'queue_provider.dart';
 import 'queue_index_provider.dart';

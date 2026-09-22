@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/playlist.dart';
+import '../../models/playlist.dart';
 
 class PlaylistNotifier extends Notifier<List<Playlist>> {
   @override

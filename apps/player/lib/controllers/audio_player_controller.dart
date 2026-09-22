@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../models/song.dart';
-import '../providers/audio_player_provider.dart';
+import '../providers/audio/audio_player_provider.dart';
 
 class AudioPlayerState {
   final Song? currentSong;
