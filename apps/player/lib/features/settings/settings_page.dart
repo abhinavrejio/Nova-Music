@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../widgets/layout/page_header.dart';
-import '../../widgets/settings/settings_group.dart';
-import '../../widgets/settings/settings_section.dart';
-import '../../widgets/settings/settings_tile.dart';
+import 'widgets/settings_section.dart';
+import 'widgets/settings_tile.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -22,115 +21,107 @@ class SettingsPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const PageHeader(
-                    title: "Settings",
-                    subtitle: "Configure Nova the way you like.",
+                    title: 'Settings',
+                    subtitle: 'Configure Nova Music the way you like.',
                   ),
 
-                  const SizedBox(height: 40),
-
-                  const SettingsSection(
-                    title: "General",
-                  ),
-
-                  SettingsGroup(
+                  SettingsSection(
+                    title: 'General',
                     children: [
                       SettingsTile(
-                        icon: Icons.play_circle_outline,
-                        title: "Playback",
+                        icon: Icons.play_circle_outline_rounded,
+                        title: 'Playback',
+                        subtitle: 'Playback behaviour',
                         onTap: () {},
                       ),
                       SettingsTile(
-                        icon: Icons.graphic_eq,
-                        title: "Audio",
+                        icon: Icons.graphic_eq_rounded,
+                        title: 'Audio',
+                        subtitle: 'Output and quality',
                         onTap: () {},
                       ),
                       SettingsTile(
                         icon: Icons.palette_outlined,
-                        title: "Appearance",
+                        title: 'Appearance',
+                        subtitle: 'Colors and interface',
                         onTap: () {},
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 40),
-
-                  const SettingsSection(
-                    title: "✨ Personalization",
-                  ),
-
-                  SettingsGroup(
+                  SettingsSection(
+                    title: '✨ Personalization',
                     children: [
                       SettingsTile(
                         icon: Icons.home_outlined,
-                        title: "Home",
+                        title: 'Home',
+                        subtitle: 'Customize your Home screen',
                         onTap: () => context.push(
-                          "/settings/customization/home",
+                          '/settings/personalization/home',
                         ),
                       ),
-
                       SettingsTile(
                         icon: Icons.library_music_outlined,
-                        title: "Library",
+                        title: 'Library',
+                        subtitle: 'Customize Library',
                         onTap: () => context.push(
-                          "/settings/customization/library",
+                          '/settings/personalization/library',
                         ),
                       ),
-
                       SettingsTile(
-                        icon: Icons.search,
-                        title: "Search",
+                        icon: Icons.search_rounded,
+                        title: 'Search',
+                        subtitle: 'Customize Search',
                         onTap: () => context.push(
-                          "/settings/customization/search",
+                          '/settings/personalization/search',
                         ),
                       ),
-
                       SettingsTile(
                         icon: Icons.music_note_outlined,
-                        title: "Player",
+                        title: 'Player',
+                        subtitle: 'Customize Player',
                         onTap: () => context.push(
-                          "/settings/customization/player",
+                          '/settings/personalization/player',
                         ),
                       ),
-
                       SettingsTile(
                         icon: Icons.view_sidebar_outlined,
-                        title: "Sidebar",
+                        title: 'Sidebar',
+                        subtitle: 'Customize Sidebar',
                         onTap: () => context.push(
-                          "/settings/customization/sidebar",
+                          '/settings/personalization/sidebar',
                         ),
                       ),
-
                       SettingsTile(
                         icon: Icons.color_lens_outlined,
-                        title: "Theme",
+                        title: 'Theme',
+                        subtitle: 'Customize Theme',
                         onTap: () => context.push(
-                          "/settings/customization/theme",
+                          '/settings/personalization/theme',
                         ),
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 40),
-
-                  const SettingsSection(
-                    title: "System",
-                  ),
-
-                  SettingsGroup(
+                  SettingsSection(
+                    title: 'System',
                     children: [
                       SettingsTile(
-                        icon: Icons.download_outlined,
-                        title: "Downloads",
+                        icon: Icons.download_rounded,
+                        title: 'Downloads',
+                        subtitle: 'Manage downloads',
                         onTap: () {},
                       ),
                       SettingsTile(
                         icon: Icons.build_outlined,
-                        title: "Advanced",
+                        title: 'Advanced',
+                        subtitle: 'Developer options',
                         onTap: () {},
                       ),
                       SettingsTile(
-                        icon: Icons.info_outline,
-                        title: "About",
+                        icon: Icons.info_outline_rounded,
+                        title: 'About',
+                        subtitle: 'Nova Music information',
                         onTap: () {},
                       ),
                     ],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../widgets/island/nova_island.dart';
+
 import 'widgets/greeting_header.dart';
 import 'widgets/home_search_bar.dart';
 import 'widgets/continue_listening_section.dart';
@@ -14,44 +16,55 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return const Scaffold(
+    return Scaffold(
       body: SafeArea(
         child: Center(
           child: SizedBox(
             width: 1180,
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(24, 24, 24, 40),
+              padding: const EdgeInsets.fromLTRB(
+                24,
+                24,
+                24,
+                40,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const GreetingHeader(),
 
-                  GreetingHeader(),
+                  const SizedBox(height: 32),
 
-                  SizedBox(height: 32),
+                  const HomeSearchBar(),
 
-                  HomeSearchBar(),
+                  const SizedBox(height: 32),
 
-                  SizedBox(height: 40),
+                  const NovaIsland(
+                    title: "Continue Listening",
+                    subtitle: "No song selected",
+                  ),
 
-                  ContinueListeningSection(),
+                  const SizedBox(height: 48),
 
-                  SizedBox(height: 48),
+                  const ContinueListeningSection(),
 
-                  CollectionsSection(),
+                  const SizedBox(height: 48),
 
-                  SizedBox(height: 48),
+                  const CollectionsSection(),
 
-                  RecentlyPlayedSection(),
+                  const SizedBox(height: 48),
 
-                  SizedBox(height: 48),
+                  const RecentlyPlayedSection(),
 
-                  AlbumsSection(),
+                  const SizedBox(height: 48),
 
-                  SizedBox(height: 48),
+                  const AlbumsSection(),
 
-                  ArtistsSection(),
+                  const SizedBox(height: 48),
 
-                  SizedBox(height: 32),
+                  const ArtistsSection(),
+
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
