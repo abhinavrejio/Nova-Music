@@ -5,16 +5,16 @@ import '../../navigation_shell.dart';
 import '../../../features/home/home_page.dart';
 import '../../../features/search/search_page.dart';
 import '../../../features/library/library_page.dart';
+import '../../../features/library/pages/songs_page.dart';
 import '../../../features/player/queue_page.dart';
 import '../../../features/settings/settings_page.dart';
-import '../../../features/library/pages/songs_page.dart';
 
-import '../../../features/settings/customization/home_customization_page.dart';
-import '../../../features/settings/customization/library_customization_page.dart';
-import '../../../features/settings/customization/search_customization_page.dart';
-import '../../../features/settings/customization/player_customization_page.dart';
-import '../../../features/settings/customization/sidebar_customization_page.dart';
-import '../../../features/settings/customization/theme_customization_page.dart';
+import '../../../features/settings/personalization/home_personalization_page.dart';
+import '../../../features/settings/personalization/library_personalization_page.dart';
+import '../../../features/settings/personalization/search_personalization_page.dart';
+import '../../../features/settings/personalization/player_personalization_page.dart';
+import '../../../features/settings/personalization/sidebar_personalization_page.dart';
+import '../../../features/settings/personalization/theme_personalization_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -58,33 +58,33 @@ final GoRouter appRouter = GoRouter(
     ),
 
     GoRoute(
-      path: '/settings/customization/home',
-      builder: (context, state) => const HomeCustomizationPage(),
+      path: '/settings/personalization/home',
+      builder: (context, state) => const HomePersonalizationPage(),
     ),
 
     GoRoute(
-      path: '/settings/customization/library',
-      builder: (context, state) => const LibraryCustomizationPage(),
+      path: '/settings/personalization/library',
+      builder: (context, state) => const LibraryPersonalizationPage(),
     ),
 
     GoRoute(
-      path: '/settings/customization/search',
-      builder: (context, state) => const SearchCustomizationPage(),
+      path: '/settings/personalization/search',
+      builder: (context, state) => const SearchPersonalizationPage(),
     ),
 
     GoRoute(
-      path: '/settings/customization/player',
-      builder: (context, state) => const PlayerCustomizationPage(),
+      path: '/settings/personalization/player',
+      builder: (context, state) => const PlayerPersonalizationPage(),
     ),
 
     GoRoute(
-      path: '/settings/customization/sidebar',
-      builder: (context, state) => const SidebarCustomizationPage(),
+      path: '/settings/personalization/sidebar',
+      builder: (context, state) => const SidebarPersonalizationPage(),
     ),
 
     GoRoute(
-      path: '/settings/customization/theme',
-      builder: (context, state) => const ThemeCustomizationPage(),
+      path: '/settings/personalization/theme',
+      builder: (context, state) => const ThemePersonalizationPage(),
     ),
   ],
 );

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-class PlayerCustomizationPage extends StatelessWidget {
-  const PlayerCustomizationPage({super.key});
+class ThemePersonalizationPage extends StatelessWidget {
+  const ThemePersonalizationPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Player Customization'),
+        title: const Text('Theme Customization'),
       ),
       body: const Center(
         child: Text(
-          'Player Customization\nComing Soon',
+          'Theme Customization\nComing Soon',
           textAlign: TextAlign.center,
         ),
       ),

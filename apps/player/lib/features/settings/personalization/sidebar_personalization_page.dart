@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-class SearchCustomizationPage extends StatelessWidget {
-  const SearchCustomizationPage({super.key});
+class SidebarPersonalizationPage extends StatelessWidget {
+  const SidebarPersonalizationPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Search Customization'),
+        title: const Text('Sidebar Customization'),
       ),
       body: const Center(
         child: Text(
-          'Search Customization\nComing Soon',
+          'Sidebar Customization\nComing Soon',
           textAlign: TextAlign.center,
         ),
       ),
