@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/theme/colors.dart';
-
 class PlaylistCard extends StatelessWidget {
   final String title;
 
-  const PlaylistCard({
-    super.key,
-    required this.title,
-  });
+  const PlaylistCard({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -18,12 +13,9 @@ class PlaylistCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
 
       child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.primary,
-          child: Icon(
-            Icons.queue_music,
-            color: Colors.white,
-          ),
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primary,
+          child: const Icon(Icons.queue_music, color: Colors.white),
         ),
 
         title: Text(
@@ -33,10 +25,7 @@ class PlaylistCard extends StatelessWidget {
           ),
         ),
 
-        subtitle: Text(
-          'Playlist',
-          style: theme.textTheme.bodySmall,
-        ),
+        subtitle: Text('Playlist', style: theme.textTheme.bodySmall),
 
         trailing: Icon(
           Icons.chevron_right,

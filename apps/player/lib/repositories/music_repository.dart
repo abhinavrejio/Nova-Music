@@ -1,86 +1,35 @@
-import '../models/album.dart';
-import '../models/artist.dart';
-import '../models/playlist.dart';
-import '../models/song.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 
 class MusicRepository {
-  const MusicRepository();
+  MusicRepository._();
 
-  // ----------------------------
-  // Songs
-  // ----------------------------
-  List<Song> getSongs() {
-    return const [
-      Song(
-        id: '1',
-        title: 'Blinding Lights',
-        artist: 'The Weeknd',
-        album: 'After Hours',
-        duration: Duration(minutes: 3, seconds: 20),
-        artworkUrl: '',
-        source: 'mock',
-        filePath: '',
-      ),
-      Song(
-        id: '2',
-        title: 'Believer',
-        artist: 'Imagine Dragons',
-        album: 'Evolve',
-        duration: Duration(minutes: 3, seconds: 24),
-        artworkUrl: '',
-        source: 'mock',
-        filePath: '',
-      ),
-      Song(
-        id: '3',
-        title: 'Starboy',
-        artist: 'The Weeknd',
-        album: 'Starboy',
-        duration: Duration(minutes: 3, seconds: 50),
-        artworkUrl: '',
-        source: 'mock',
-        filePath: '',
-      ),
-    ];
+  static final MusicRepository instance = MusicRepository._();
+
+  final OnAudioQuery _audioQuery = OnAudioQuery();
+
+  Future<bool> requestPermission() async {
+    return await _audioQuery.permissionsStatus() ||
+        await _audioQuery.permissionsRequest();
   }
 
-  // ----------------------------
-  // Albums
-  // ----------------------------
-  List<Album> getAlbums() {
-    return const [
-      Album(
-        id: '1',
-        title: 'After Hours',
-        artist: 'The Weeknd',
-        artworkUrl: '',
-      ),
-      Album(
-        id: '2',
-        title: 'Evolve',
-        artist: 'Imagine Dragons',
-        artworkUrl: '',
-      ),
-      Album(
-        id: '3',
-        title: 'Future Nostalgia',
-        artist: 'Dua Lipa',
-        artworkUrl: '',
-      ),
-    ];
+  Future<List<SongModel>> getSongs() async {
+    return await _audioQuery.querySongs(
+      sortType: SongSortType.TITLE,
+      orderType: OrderType.ASC_OR_SMALLER,
+      uriType: UriType.EXTERNAL,
+      ignoreCase: true,
+    );
   }
 
-  // ----------------------------
-  // Artists
-  // ----------------------------
-  List<Artist> getArtists() {
-    return const [];
+  Future<List<AlbumModel>> getAlbums() async {
+    return await _audioQuery.queryAlbums();
   }
 
-  // ----------------------------
-  // Playlists
-  // ----------------------------
-  List<Playlist> getPlaylists() {
-    return const [];
+  Future<List<ArtistModel>> getArtists() async {
+    return await _audioQuery.queryArtists();
+  }
+
+  Future<List<PlaylistModel>> getPlaylists() async {
+    return await _audioQuery.queryPlaylists();
   }
 }

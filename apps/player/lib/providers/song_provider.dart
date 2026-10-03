@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/song.dart';
+import '../core/audio/song_mapper.dart';
+import '../models/song/song.dart';
 import 'music_provider.dart';
 
-final songsProvider = Provider<List<Song>>((ref) {
+final songsProvider = FutureProvider<List<Song>>((ref) async {
   final repository = ref.watch(musicRepositoryProvider);
-  return repository.getSongs();
+  final songs = await repository.getSongs();
+  return songs.map(SongMapper.fromSongModel).toList();
 });

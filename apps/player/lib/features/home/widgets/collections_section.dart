@@ -1,19 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../providers/download_provider.dart';
+import '../../../providers/library/liked_songs_provider.dart';
+import '../../../providers/library_folder_provider.dart';
+import '../../../providers/most_played_provider.dart';
+import '../../../providers/recent_provider.dart';
 import 'collection_card.dart';
 import 'section_title.dart';
 
-class CollectionsSection extends StatelessWidget {
+class CollectionsSection extends ConsumerWidget {
   const CollectionsSection({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final likedCount = ref.watch(likedSongsProvider).length;
+    final recentCount = ref.watch(recentlyPlayedSongsProvider).length;
+    final mostPlayedCount = ref.watch(mostPlayedSongsProvider).length;
+    final downloadCount = ref.watch(downloadProvider).length;
+    final folderCount = ref.watch(libraryFolderProvider).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle(
+        SectionTitle(
           title: "Collections",
           actionText: "View All",
+          onPressed: () => context.go('/library'),
         ),
 
         const SizedBox(height: 18),
@@ -21,11 +34,11 @@ class CollectionsSection extends StatelessWidget {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: const [
+            children: [
               CollectionCard(
                 icon: Icons.favorite_rounded,
                 title: "Liked Songs",
-                subtitle: "248 songs",
+                subtitle: "$likedCount songs",
                 color: Colors.red,
               ),
 
@@ -34,7 +47,7 @@ class CollectionsSection extends StatelessWidget {
               CollectionCard(
                 icon: Icons.history_rounded,
                 title: "Recently Played",
-                subtitle: "53 songs",
+                subtitle: "$recentCount songs",
                 color: Colors.blue,
               ),
 
@@ -43,7 +56,7 @@ class CollectionsSection extends StatelessWidget {
               CollectionCard(
                 icon: Icons.trending_up_rounded,
                 title: "Most Played",
-                subtitle: "48 songs",
+                subtitle: "$mostPlayedCount songs",
                 color: Colors.orange,
               ),
 
@@ -52,7 +65,7 @@ class CollectionsSection extends StatelessWidget {
               CollectionCard(
                 icon: Icons.download_rounded,
                 title: "Downloads",
-                subtitle: "25 songs",
+                subtitle: "$downloadCount songs",
                 color: Colors.purple,
               ),
 
@@ -61,7 +74,7 @@ class CollectionsSection extends StatelessWidget {
               CollectionCard(
                 icon: Icons.folder_rounded,
                 title: "Folders",
-                subtitle: "6 folders",
+                subtitle: "$folderCount folders",
                 color: Colors.amber,
               ),
 

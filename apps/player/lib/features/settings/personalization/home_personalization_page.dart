@@ -1,47 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomePersonalizationPage extends StatefulWidget {
+import '../../../providers/personalization/home_personalization_provider.dart';
+
+class HomePersonalizationPage extends ConsumerWidget {
   const HomePersonalizationPage({super.key});
 
   @override
-  State<HomePersonalizationPage> createState() =>
-      _HomePersonalizationPageState();
-}
-
-class _HomePersonalizationPageState
-    extends State<HomePersonalizationPage> {
-  static const List<String> _defaultSections = [
-    'Continue Listening',
-    'Quick Collections',
-    'Recently Played',
-    'Albums',
-    'Artists',
-    'Playlists',
-    'Genres',
-    'Favorites',
-    'Downloads',
-  ];
-
-  late List<String> sections;
-
-  @override
-  void initState() {
-    super.initState();
-    sections = List.from(_defaultSections);
-  }
-
-  void _restoreDefaults() {
-    setState(() {
-      sections = List.from(_defaultSections);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sections = ref.watch(homePersonalizationProvider);
+    final notifier = ref.read(homePersonalizationProvider.notifier);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home Personalization'),
-      ),
+      appBar: AppBar(title: const Text('Home Personalization')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -56,7 +26,7 @@ class _HomePersonalizationPageState
 
             Text(
               'Drag and drop sections to change their order. '
-              'This order will be reflected on your Home page.',
+              'This order is saved and reflected on your Home page.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
 
@@ -65,36 +35,30 @@ class _HomePersonalizationPageState
             Expanded(
               child: ReorderableListView.builder(
                 itemCount: sections.length,
-                onReorder: (oldIndex, newIndex) {
-                  setState(() {
-                    if (oldIndex < newIndex) {
-                      newIndex--;
-                    }
-
-                    final item = sections.removeAt(oldIndex);
-                    sections.insert(newIndex, item);
-                  });
-                },
+                onReorderItem: notifier.reorder,
                 itemBuilder: (context, index) {
+                  final section = sections[index];
                   return Card(
-                    key: ValueKey(sections[index]),
+                    key: ValueKey(section.type),
                     elevation: 0,
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: ListTile(
-                      leading: const Icon(Icons.drag_indicator_rounded),
+                      leading: ReorderableDragStartListener(
+                        index: index,
+                        child: const Icon(Icons.drag_indicator_rounded),
+                      ),
                       title: Text(
-                        sections[index],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        section.title,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      subtitle: const Text(
-                        'Drag to reorder this section',
+                      subtitle: const Text('Drag to reorder this section'),
+                      trailing: Switch.adaptive(
+                        value: section.visible,
+                        onChanged: (_) => notifier.toggle(section.type),
                       ),
-                      trailing: const Icon(Icons.chevron_right_rounded),
                     ),
                   );
                 },
@@ -106,7 +70,7 @@ class _HomePersonalizationPageState
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
-                onPressed: _restoreDefaults,
+                onPressed: notifier.restoreDefaults,
                 icon: const Icon(Icons.restore),
                 label: const Text('Restore Defaults'),
               ),

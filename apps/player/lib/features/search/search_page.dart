@@ -10,7 +10,8 @@ import '../../providers/library/library_provider.dart';
 import '../../providers/playback/current_song_provider.dart';
 import '../../providers/playback/queue_index_provider.dart';
 import '../../providers/playback/queue_provider.dart';
-import '../../repositories/music_repository.dart';
+import '../../providers/playlists/playlist_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../player/player_page.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
@@ -31,25 +32,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final librarySongs = ref.watch(libraryProvider);
-    final fallbackSongs = const MusicRepository().getSongs();
-    final songs = librarySongs.isEmpty
-        ? fallbackSongs
-            .map(
-              (song) => CurrentSong(
-                path: song.filePath.isEmpty ? song.title : song.filePath,
-                title: song.title,
-                artist: song.artist,
-                album: song.album,
-                duration: song.duration,
-              ),
-            )
-            .toList()
-        : librarySongs;
-    final playlists = const MusicRepository().getPlaylists();
+    final songs = ref.watch(libraryProvider);
+    final playlists = ref.watch(playlistProvider);
+    final settings = ref.watch(settingsProvider);
     final query = _searchController.text.trim().toLowerCase();
 
-    final filteredSongs = songs.where((song) {
+    final filteredSongs = settings.searchShowSongs ? songs.where((song) {
       if (query.isEmpty) return true;
       final text = [
         song.title,
@@ -57,12 +45,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         song.album,
       ].join(' ').toLowerCase();
       return text.contains(query);
-    }).toList();
+    }).toList() : <CurrentSong>[];
 
-    final filteredPlaylists = playlists.where((playlist) {
+    final filteredPlaylists = settings.searchShowPlaylists ? playlists.where((playlist) {
       if (query.isEmpty) return true;
       return playlist.name.toLowerCase().contains(query);
-    }).toList();
+    }).toList() : <Playlist>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -81,20 +69,34 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextField(
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: TextField(
                 controller: _searchController,
+                autofocus: true,
                 decoration: InputDecoration(
                   hintText: 'Search songs, artists, albums',
                   prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _searchController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Clear search',
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                        ),
                   filled: true,
                   fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
                 ),
                 onChanged: (_) => setState(() {}),
+                ),
               ),
               const SizedBox(height: 24),
               if (filteredSongs.isNotEmpty) ...[
