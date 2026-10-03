@@ -49,7 +49,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
         borderRadius: BorderRadius.circular(AppRadii.lg),
         border: Border.all(
           color: focused
-              ? AppColors.primary
+              ? Theme.of(context).colorScheme.primary
               : AppColors.border,
           width: focused ? 1.5 : 1,
         ),
@@ -68,25 +68,19 @@ class _AppSearchBarState extends State<AppSearchBar> {
           onTap: widget.onTap,
           onChanged: widget.onChanged,
           onSubmitted: widget.onSubmitted,
-          style: const TextStyle(
-            color: AppColors.text,
-            fontSize: 15,
-          ),
+          style: const TextStyle(color: AppColors.text, fontSize: 15),
           decoration: InputDecoration(
             border: InputBorder.none,
             hintText: widget.hintText,
-            hintStyle: const TextStyle(
-              color: AppColors.textSecondary,
-            ),
-            prefixIcon: widget.prefixIcon ??
+            hintStyle: const TextStyle(color: AppColors.textSecondary),
+            prefixIcon:
+                widget.prefixIcon ??
                 const Icon(
                   Icons.search_rounded,
                   color: AppColors.textSecondary,
                 ),
             suffixIcon: widget.suffixIcon,
-            contentPadding: const EdgeInsets.symmetric(
-              vertical: 16,
-            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
       ),

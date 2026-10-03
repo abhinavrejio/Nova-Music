@@ -14,7 +14,6 @@ import '../../../features/settings/personalization/library_personalization_page.
 import '../../../features/settings/personalization/search_personalization_page.dart';
 import '../../../features/settings/personalization/player_personalization_page.dart';
 import '../../../features/settings/personalization/sidebar_personalization_page.dart';
-import '../../../features/settings/personalization/theme_personalization_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -82,9 +81,5 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const SidebarPersonalizationPage(),
     ),
 
-    GoRoute(
-      path: '/settings/personalization/theme',
-      builder: (context, state) => const ThemePersonalizationPage(),
-    ),
   ],
 );

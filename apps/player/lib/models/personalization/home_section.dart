@@ -1,46 +1,33 @@
-enum HomeSection {
-  continueListening(
-    "Continue Listening",
-    true,
-  ),
-  quickCollections(
-    "Quick Collections",
-    true,
-  ),
-  recentlyPlayed(
-    "Recently Played",
-    true,
-  ),
-  albums(
-    "Albums",
-    true,
-  ),
-  artists(
-    "Artists",
-    true,
-  ),
-  playlists(
-    "Playlists",
-    true,
-  ),
-  genres(
-    "Genres",
-    true,
-  ),
-  favorites(
-    "Favorites",
-    true,
-  ),
-  downloads(
-    "Downloads",
-    true,
-  );
+enum HomeSectionType {
+  continueListening,
+  quickCollections,
+  recentlyPlayed,
+  albums,
+  artists,
+  playlists,
+  genres,
+  favorites,
+  downloads,
+}
 
-  const HomeSection(
-    this.title,
-    this.enabled,
-  );
+class HomeSection {
+  const HomeSection({
+    required this.type,
+    required this.title,
+    this.visible = true,
+  });
 
+  final HomeSectionType type;
   final String title;
-  final bool enabled;
+  final bool visible;
+
+  HomeSection copyWith({
+    bool? visible,
+  }) {
+    return HomeSection(
+      type: type,
+      title: title,
+      visible: visible ?? this.visible,
+    );
+  }
 }

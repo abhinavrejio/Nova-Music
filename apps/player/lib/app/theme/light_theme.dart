@@ -2,19 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'colors.dart';
+import '../../models/app_settings.dart';
 
-final lightTheme = ThemeData(
+ThemeData buildLightTheme(AppSettings settings) => ThemeData(
   useMaterial3: true,
 
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: AppColors.primary,
-    brightness: Brightness.light,
-  ).copyWith(
-    primary: AppColors.primary,
-    secondary: AppColors.secondary,
-    tertiary: AppColors.tertiary,
-    surface: AppColors.surface,
-  ),
+  colorScheme:
+      ColorScheme.fromSeed(
+        seedColor: Color(settings.accentColorValue),
+        brightness: Brightness.light,
+      ).copyWith(
+        primary: Color(settings.accentColorValue),
+        secondary: AppColors.secondary,
+        tertiary: AppColors.tertiary,
+        surface: AppColors.surface,
+      ),
 
   scaffoldBackgroundColor: AppColors.background,
   textTheme: GoogleFonts.spaceGroteskTextTheme(),
@@ -22,9 +24,7 @@ final lightTheme = ThemeData(
   cardTheme: CardThemeData(
     color: AppColors.surface,
     elevation: 0,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
   ),
 
   appBarTheme: const AppBarTheme(
@@ -35,7 +35,7 @@ final lightTheme = ThemeData(
 
   navigationBarTheme: NavigationBarThemeData(
     backgroundColor: AppColors.surface,
-    indicatorColor: AppColors.primary.withValues(alpha: 0.20),
+    indicatorColor: Color(settings.accentColorValue).withValues(alpha: 0.20),
   ),
 
   inputDecorationTheme: const InputDecorationTheme(

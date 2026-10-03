@@ -2,41 +2,113 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'colors.dart';
+import '../../models/app_settings.dart';
 
-final darkTheme = ThemeData(
-  useMaterial3: true,
-  brightness: Brightness.dark,
+ThemeData buildDarkTheme(AppSettings settings) {
+  final accent =
+      Color(settings.accentColorValue);
 
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: AppColors.primary,
+  final bool amoled =
+      settings.amoledBlack;
+
+  final background = amoled
+      ? Colors.black
+      : AppColors.ink;
+
+  final surface = amoled
+      ? const Color(0xFF0A0A0A)
+      : const Color(0xFF12191D);
+
+  final divider = amoled
+      ? const Color(0xFF202020)
+      : const Color(0xFF292929);
+
+  final scheme =
+      ColorScheme.fromSeed(
+        seedColor: accent,
+        brightness: Brightness.dark,
+      ).copyWith(
+        primary: accent,
+        secondary: AppColors.secondary,
+        tertiary: AppColors.tertiary,
+        surface: surface,
+        surfaceContainerLowest: background,
+      );
+
+  return ThemeData(
+    useMaterial3: true,
     brightness: Brightness.dark,
-  ).copyWith(
-    primary: AppColors.primary,
-    secondary: AppColors.secondary,
-    tertiary: AppColors.tertiary,
-    surface: const Color(0xFF12191D),
-  ),
 
-  scaffoldBackgroundColor: AppColors.ink,
-  textTheme: GoogleFonts.spaceGroteskTextTheme(ThemeData.dark().textTheme),
+    colorScheme: scheme,
 
-  cardTheme: CardThemeData(
-    color: const Color(0xFF12191D),
-    elevation: 0,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
+    scaffoldBackgroundColor:
+        background,
+
+    textTheme:
+        GoogleFonts.spaceGroteskTextTheme(
+          ThemeData.dark().textTheme,
+        ),
+
+    cardTheme: CardThemeData(
+      color: surface,
+      elevation: 0,
+      shape:
+          RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.circular(20),
+      ),
     ),
-  ),
 
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Colors.transparent,
-    elevation: 0,
-    scrolledUnderElevation: 0,
-  ),
+    appBarTheme:
+        const AppBarTheme(
+      backgroundColor:
+          Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+    ),
 
-  navigationBarTheme: const NavigationBarThemeData(
-    backgroundColor: Color(0xFF12191D),
-  ),
+    navigationBarTheme:
+        NavigationBarThemeData(
+      backgroundColor: surface,
+      indicatorColor:
+          accent.withValues(alpha: 0.20),
+    ),
 
-  dividerColor: const Color(0xFF222222),
-);
+    navigationRailTheme:
+        NavigationRailThemeData(
+      backgroundColor: surface,
+      indicatorColor:
+          accent.withValues(alpha: 0.20),
+    ),
+
+    switchTheme:
+        SwitchThemeData(
+      thumbColor:
+          WidgetStateProperty.resolveWith(
+        (states) {
+          if (states.contains(
+            WidgetState.selected,
+          )) {
+            return Colors.white;
+          }
+
+          return const Color(0xFFB0A3A3);
+        },
+      ),
+      trackColor:
+          WidgetStateProperty.resolveWith(
+        (states) {
+          if (states.contains(
+            WidgetState.selected,
+          )) {
+            return accent;
+          }
+
+          return const Color(0xFF302C2E);
+        },
+      ),
+    ),
+
+    dividerColor: divider,
+  );
+}

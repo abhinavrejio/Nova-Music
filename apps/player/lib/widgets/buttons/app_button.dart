@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../design/colors.dart';
 import '../../design/radii.dart';
 
 class AppButton extends StatelessWidget {
@@ -28,13 +27,11 @@ class AppButton extends StatelessWidget {
       icon: Icon(icon),
       label: Text(text),
       style: FilledButton.styleFrom(
-        backgroundColor: backgroundColor ?? AppColors.primary,
+        backgroundColor:
+            backgroundColor ?? Theme.of(context).colorScheme.primary,
         foregroundColor: foregroundColor ?? Colors.white,
-        padding: padding ??
-            const EdgeInsets.symmetric(
-              horizontal: 22,
-              vertical: 16,
-            ),
+        padding:
+            padding ?? const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.pill),
         ),

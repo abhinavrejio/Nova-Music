@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'dark_theme.dart';
 import 'light_theme.dart';
+import '../../models/app_settings.dart';
 
 class AppTheme {
-  static ThemeData get light => lightTheme;
+  static ThemeData light(AppSettings settings) => buildLightTheme(settings);
 
-  static ThemeData get dark => darkTheme;
+  static ThemeData dark(AppSettings settings) => buildDarkTheme(settings);
 }
