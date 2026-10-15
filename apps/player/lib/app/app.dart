@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/settings_provider.dart';
 import '../providers/startup_provider.dart';
+import '../shared/widgets/app_scale.dart';
 import 'config/router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -27,10 +28,20 @@ class _NovaMusicAppState extends ConsumerState<NovaMusicApp> {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Nova Music',
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: AppTheme.light(settings),
+      darkTheme: AppTheme.dark(settings),
       themeMode: settings.themeMode,
       routerConfig: appRouter,
+      builder: (context, child) {
+        if (child == null) {
+          return const SizedBox.shrink();
+        }
+
+        return AppScale(
+          scale: settings.uiScale,
+          child: child,
+        );
+      },
     );
   }
 }

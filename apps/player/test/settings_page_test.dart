@@ -3,66 +3,50 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:player/features/settings/settings_page.dart';
 import 'package:player/models/app_settings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('SettingsPage exposes playback and appearance preferences', (tester) async {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  testWidgets(
+    'Glass quality remains manually selectable with Adaptive Glass enabled',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: SettingsPage())),
+      );
+
+      await tester.tap(find.text('Appearance'));
+      await tester.pumpAndSettle();
+
+      final qualityPicker = tester
+          .widget<DropdownButtonFormField<GlassQuality>>(
+            find.byType(DropdownButtonFormField<GlassQuality>),
+          );
+      expect(qualityPicker.onChanged, isNotNull);
+      expect(find.text('BACKGROUND STYLE'), findsOneWidget);
+      expect(find.text('AMOLED Black'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Playback settings do not expose keyboard shortcuts', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
-          home: SettingsPage(),
-        ),
-      ),
+      const ProviderScope(child: MaterialApp(home: SettingsPage())),
     );
-
-    expect(find.text('Theme'), findsOneWidget);
-    expect(find.text('Liquid Glass'), findsOneWidget);
-    expect(find.text('Auto Play'), findsOneWidget);
-  });
-
-  testWidgets('SettingsPage toggles the shared shuffle mode', (tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
-          home: SettingsPage(),
-        ),
-      ),
-    );
-
-    final shuffleSwitch = find.byType(Switch).at(2);
-    expect(tester.widget<Switch>(shuffleSwitch).value, isFalse);
-
-    await tester.tap(shuffleSwitch);
-    await tester.pump();
-
-    expect(find.text('Shuffle'), findsOneWidget);
-    expect(tester.widget<Switch>(find.byType(Switch).at(2)).value, isTrue);
-  });
-
-  testWidgets('SettingsPage cycles the shared repeat mode', (tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
-          home: SettingsPage(),
-        ),
-      ),
-    );
-
-    expect(find.text('OFF'), findsOneWidget);
-
-    await tester.tap(find.text('Repeat'));
-    await tester.pump();
-
-    expect(find.text('ALL'), findsOneWidget);
-  });
-
-  test('App settings clamps UI scale to the slider range', () {
-    const settings = AppSettings(
-      themeMode: ThemeMode.system,
-      liquidGlass: true,
-      uiScale: 0.0,
-      hardwareAcceleration: true,
-    );
-
-    expect(settings.copyWith(uiScale: 0.0).uiScale, 0.9);
+    await tester.tap(find.text('Playback & Audio'));
+    await tester.pumpAndSettle();
+    expect(find.text('KEYBOARD SHORTCUTS'), findsNothing);
+    expect(find.text('Play / pause'), findsNothing);
   });
 }

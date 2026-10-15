@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/theme/colors.dart';
 import '../../../models/album.dart';
 
 class RecentAlbumCard extends StatelessWidget {
   final Album album;
 
-  const RecentAlbumCard({
-    super.key,
-    required this.album,
-  });
+  const RecentAlbumCard({super.key, required this.album});
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +35,7 @@ class RecentAlbumCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 child: album.artworkUrl.isEmpty
                     ? Container(
-                        color: AppColors.primary,
+                        color: theme.colorScheme.primary,
                         child: const Center(
                           child: Icon(
                             Icons.album,

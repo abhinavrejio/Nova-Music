@@ -44,6 +44,15 @@ dependencies:
   # Progress Bar
   audio_video_progress_bar: ^2.0.3
 
+  just_audio: ^0.10.5
+  on_audio_query: ^2.9.0
+
+  # lyrics
+  http: ^1.5.0
+  flutter_secure_storage: ^10.3.4
+  url_launcher: ^6.3.2
+  yaml: ^3.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -5,6 +5,17 @@
 #include "flutter_window.h"
 #include "utils.h"
 
+namespace {
+bool HardwareAccelerationPreferred() {
+  DWORD enabled = 1;
+  DWORD size = sizeof(enabled);
+  const LSTATUS status = RegGetValueW(
+      HKEY_CURRENT_USER, L"Software\\NovaMusic\\Player",
+      L"HardwareAcceleration", RRF_RT_REG_DWORD, nullptr, &enabled, &size);
+  return status != ERROR_SUCCESS || enabled != 0;
+}
+}  // namespace
+
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
   // Attach to console when present (e.g., 'flutter run') or create a
@@ -18,9 +29,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
   flutter::DartProject project(L"data");
-  // The current Windows OpenGL Impeller path renders a blank surface on this
-  // target. Keep the stable Skia renderer as the app default.
+  // Prefer Skia for this app. The user setting controls only the Windows GPU
+  // adapter preference; it does not disable Flutter's GPU renderer.
   project.set_impeller_switch(flutter::ImpellerSwitch::Disabled);
+  project.set_gpu_preference(
+      HardwareAccelerationPreferred()
+          ? flutter::GpuPreference::HighPerformancePreference
+          : flutter::GpuPreference::NoPreference);
 
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();

@@ -3,21 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'audio_player_provider.dart';
 
 final positionProvider = StreamProvider<Duration>((ref) {
-  final player = ref.watch(audioPlayerProvider).player;
-  return player.stream.position;
+  return ref.watch(audioPlayerProvider).positionStream;
 });
 
 final durationProvider = StreamProvider<Duration>((ref) {
-  final player = ref.watch(audioPlayerProvider).player;
-  return player.stream.duration;
+  return ref.watch(audioPlayerProvider).durationStream;
 });
 
 final bufferedProvider = StreamProvider<Duration>((ref) {
-  final player = ref.watch(audioPlayerProvider).player;
-  return player.stream.buffer;
+  return ref.watch(audioPlayerProvider).bufferStream;
 });
 
 final playingProvider = StreamProvider<bool>((ref) {
-  final player = ref.watch(audioPlayerProvider).player;
-  return player.stream.playing;
+  return ref.watch(audioPlayerProvider).playingStream;
 });

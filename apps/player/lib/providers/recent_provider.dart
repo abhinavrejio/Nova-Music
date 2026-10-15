@@ -21,10 +21,36 @@ class RecentNotifier extends Notifier<List<String>> {
     return const [];
   }
 
+  String _key(String path) => path.replaceAll('/', '\\').toLowerCase();
+
+  List<String> _dedupe(Iterable<String> paths) {
+    final seen = <String>{};
+    final result = <String>[];
+
+    for (final path in paths) {
+      if (path.isEmpty) continue;
+
+      final key = _key(path);
+      if (seen.add(key)) {
+        result.add(path);
+      }
+
+      if (result.length == 100) break;
+    }
+
+    return result;
+  }
+
   void record(String path) {
     if (path.isEmpty) return;
+
     _revision++;
-    state = [path, ...state].take(100).toList();
+
+    final previous = state.where(
+      (existing) => _key(existing) != _key(path),
+    );
+
+    state = [path, ...previous].take(100).toList(growable: false);
     _persist();
   }
 
@@ -32,24 +58,50 @@ class RecentNotifier extends Notifier<List<String>> {
     final revision = ++_revision;
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_recentStorageKey);
-    if (revision != _revision || raw == null) return;
-    final decoded = jsonDecode(raw) as List<dynamic>;
-    state = decoded.whereType<String>().toList();
+
+    if (revision != _revision || raw == null || raw.isEmpty) {
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List<dynamic>) return;
+
+      state = _dedupe(decoded.whereType<String>());
+    } catch (_) {
+      state = const [];
+    }
   }
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_recentStorageKey, jsonEncode(state));
+    await prefs.setString(
+      _recentStorageKey,
+      jsonEncode(state),
+    );
   }
 }
 
 final recentlyPlayedSongsProvider = Provider<List<CurrentSong>>((ref) {
   final paths = ref.watch(recentProvider);
-  final songsByPath = {
-    for (final song in ref.watch(libraryProvider)) song.path: song,
+  final songsByPath = <String, CurrentSong>{
+    for (final song in ref.watch(libraryProvider))
+      song.path.replaceAll('/', '\\').toLowerCase(): song,
   };
-  return paths
-      .map((path) => songsByPath[path])
-      .whereType<CurrentSong>()
-      .toList();
+
+  final result = <CurrentSong>[];
+  final seen = <String>{};
+
+  for (final path in paths) {
+    final key = path.replaceAll('/', '\\').toLowerCase();
+
+    if (!seen.add(key)) continue;
+
+    final song = songsByPath[key];
+    if (song != null) {
+      result.add(song);
+    }
+  }
+
+  return result;
 });

@@ -17,11 +17,13 @@ class LibraryNotifier extends Notifier<List<CurrentSong>> {
 
   Future<void> scanFolder(String folderPath) async {
     final songs = await LibraryBuilder().buildLibrary(folderPath);
-
     final updated = [...state];
 
     for (final song in songs) {
-      if (!updated.any((s) => s.path == song.path)) {
+      if (!updated.any(
+        (existing) =>
+            existing.path.toLowerCase() == song.path.toLowerCase(),
+      )) {
         updated.add(song);
       }
     }
@@ -31,14 +33,16 @@ class LibraryNotifier extends Notifier<List<CurrentSong>> {
 
   Future<void> rescanAll() async {
     final folders = await LibraryFolderService().loadFolders();
-
     final allSongs = <CurrentSong>[];
+    final seen = <String>{};
 
     for (final folder in folders) {
       final songs = await LibraryBuilder().buildLibrary(folder.path);
 
       for (final song in songs) {
-        if (!allSongs.any((s) => s.path == song.path)) {
+        final key = song.path.toLowerCase();
+
+        if (seen.add(key)) {
           allSongs.add(song);
         }
       }

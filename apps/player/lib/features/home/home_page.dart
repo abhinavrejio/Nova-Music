@@ -1,62 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/personalization/home_personalization_provider.dart';
+import 'builders/home_section_builder.dart';
 import 'widgets/greeting_header.dart';
-import 'widgets/home_search_bar.dart';
-import 'widgets/continue_listening_section.dart';
-import 'widgets/collections_section.dart';
-import 'widgets/recently_played_section.dart';
-import 'widgets/album_section.dart';
-import 'widgets/artists_section.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return const Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SizedBox(
-            width: 1180,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(24, 24, 24, 40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  GreetingHeader(),
-
-                  SizedBox(height: 32),
-
-                  HomeSearchBar(),
-
-                  SizedBox(height: 40),
-
-                  ContinueListeningSection(),
-
-                  SizedBox(height: 48),
-
-                  CollectionsSection(),
-
-                  SizedBox(height: 48),
-
-                  RecentlyPlayedSection(),
-
-                  SizedBox(height: 48),
-
-                  AlbumsSection(),
-
-                  SizedBox(height: 48),
-
-                  ArtistsSection(),
-
-                  SizedBox(height: 32),
-                ],
+    final sections = ref.watch(homePersonalizationProvider);
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(36, 32, 36, 0),
+            sliver: SliverToBoxAdapter(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1400),
+                child: const GreetingHeader(),
               ),
             ),
           ),
-        ),
+          const SliverToBoxAdapter(child: SizedBox(height: 36)),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(36, 0, 36, 48),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final section = sections[index];
+
+                if (!section.visible) {
+                  return const SizedBox.shrink();
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 40),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1400),
+                      child: HomeSectionBuilder.build(section),
+                    ),
+                  ),
+                );
+              }, childCount: sections.length),
+            ),
+          ),
+        ],
       ),
     );
   }
