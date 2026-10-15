@@ -58,15 +58,6 @@ class ThemePersonalizationPage extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Card(
-            child: SwitchListTile.adaptive(
-              value: settings.liquidGlass,
-              title: const Text('Liquid Glass'),
-              subtitle: const Text('Use translucent surfaces where available.'),
-              onChanged: notifier.setLiquidGlass,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
             child: ListTile(
               title: const Text('Interface Scale'),
               subtitle: Slider(

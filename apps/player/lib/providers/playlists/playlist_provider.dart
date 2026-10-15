@@ -44,6 +44,7 @@ class PlaylistNotifier extends Notifier<List<Playlist>> {
         songPaths: List<String>.from(map['songPaths'] as List<dynamic>),
         description: map['description'] as String? ?? '',
         isSmartPlaylist: map['isSmartPlaylist'] as bool? ?? false,
+        isPinned: map['isPinned'] as bool? ?? false,
       );
     }).toList();
   }
@@ -58,6 +59,7 @@ class PlaylistNotifier extends Notifier<List<Playlist>> {
           'songPaths': playlist.songPaths,
           'description': playlist.description,
           'isSmartPlaylist': playlist.isSmartPlaylist,
+          'isPinned': playlist.isPinned,
         };
       }).toList(),
     );
@@ -90,8 +92,17 @@ class PlaylistNotifier extends Notifier<List<Playlist>> {
     _revision++;
     state = [
       for (final playlist in state)
+        if (playlist.id == id) playlist.copyWith(name: newName) else playlist,
+    ];
+    await _persist();
+  }
+
+  Future<void> togglePinned(String id) async {
+    _revision++;
+    state = [
+      for (final playlist in state)
         if (playlist.id == id)
-          playlist.copyWith(name: newName)
+          playlist.copyWith(isPinned: !playlist.isPinned)
         else
           playlist,
     ];
@@ -103,9 +114,7 @@ class PlaylistNotifier extends Notifier<List<Playlist>> {
     state = [
       for (final playlist in state)
         if (playlist.id == id)
-          playlist.copyWith(
-            songPaths: [...playlist.songPaths, path],
-          )
+          playlist.copyWith(songPaths: [...playlist.songPaths, path])
         else
           playlist,
     ];
@@ -118,9 +127,7 @@ class PlaylistNotifier extends Notifier<List<Playlist>> {
       for (final playlist in state)
         if (playlist.id == id)
           playlist.copyWith(
-            songPaths: playlist.songPaths
-                .where((e) => e != path)
-                .toList(),
+            songPaths: playlist.songPaths.where((e) => e != path).toList(),
           )
         else
           playlist,
@@ -129,7 +136,6 @@ class PlaylistNotifier extends Notifier<List<Playlist>> {
   }
 }
 
-final playlistProvider =
-    NotifierProvider<PlaylistNotifier, List<Playlist>>(
+final playlistProvider = NotifierProvider<PlaylistNotifier, List<Playlist>>(
   PlaylistNotifier.new,
 );

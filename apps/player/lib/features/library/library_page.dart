@@ -99,7 +99,12 @@ class LibraryPage extends ConsumerWidget {
     final folderCount = _folderCount(songs);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Library")),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Library'),
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1180),
@@ -299,6 +304,10 @@ class LibraryPage extends ConsumerWidget {
                   (playlist) => PlaylistTile(
                     title: playlist.name,
                     songCount: playlist.songCount,
+                    isPinned: playlist.isPinned,
+                    onPin: () => ref
+                        .read(playlistProvider.notifier)
+                        .togglePinned(playlist.id),
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(

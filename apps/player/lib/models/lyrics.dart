@@ -7,6 +7,7 @@ class Lyrics {
     required this.lines,
     this.synced = false,
     this.source = '',
+    this.cached = false,
   });
 
   final String title;
@@ -15,4 +16,7 @@ class Lyrics {
 
   final bool synced;
   final String source;
+  final bool cached;
+
+  bool get hasWordSync => lines.any((line) => line.words.isNotEmpty);
 }

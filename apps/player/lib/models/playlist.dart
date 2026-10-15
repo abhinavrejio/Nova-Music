@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 class Playlist {
   const Playlist({
     required this.id,
@@ -7,6 +8,7 @@ class Playlist {
     this.description = '',
     this.artwork,
     this.isSmartPlaylist = false,
+    this.isPinned = false,
   });
 
   final String id;
@@ -15,6 +17,7 @@ class Playlist {
   final String description;
   final Uint8List? artwork;
   final bool isSmartPlaylist;
+  final bool isPinned;
 
   int get songCount => songPaths.length;
 
@@ -25,6 +28,7 @@ class Playlist {
     String? description,
     Uint8List? artwork,
     bool? isSmartPlaylist,
+    bool? isPinned,
   }) {
     return Playlist(
       id: id ?? this.id,
@@ -33,6 +37,7 @@ class Playlist {
       description: description ?? this.description,
       artwork: artwork ?? this.artwork,
       isSmartPlaylist: isSmartPlaylist ?? this.isSmartPlaylist,
+      isPinned: isPinned ?? this.isPinned,
     );
   }
 }

@@ -16,20 +16,107 @@ class PlaybackController {
   final Ref ref;
 
   StreamSubscription<bool>? _completedSubscription;
+  StreamSubscription<Duration>? _positionSubscription;
+  bool _crossfadeStarted = false;
 
   /// Start listening for song completion.
   void startListening() {
     _completedSubscription?.cancel();
 
-    final player = ref.read(audioPlayerProvider).player;
+    final service = ref.read(audioPlayerProvider);
+    if (!service.isReady) {
+      return;
+    }
 
-    _completedSubscription = player.stream.completed.listen(
+    _completedSubscription = service.completedStream.listen(
       (completed) async {
-        if (completed) {
-          await next(fromCompletion: true);
+        if (!completed) {
+          return;
         }
+
+        if (!ref.read(settingsProvider).autoPlay) {
+          return;
+        }
+
+        await next(fromCompletion: true);
       },
     );
+
+    _positionSubscription = service.positionStream.listen((position) {
+      _maybeStartCrossfade(position);
+    });
+  }
+
+  void _maybeStartCrossfade(Duration position) {
+    final settings = ref.read(settingsProvider);
+    if (!settings.autoPlay || !settings.crossfadeEnabled || _crossfadeStarted) {
+      return;
+    }
+
+    final repeatMode = ref.read(repeatModeProvider);
+    if (repeatMode == PlaybackRepeatMode.one) return;
+
+    final service = ref.read(audioPlayerProvider);
+    final duration = service.duration;
+    if (duration <= Duration.zero || position < Duration.zero) return;
+
+    final fadeDuration = Duration(seconds: settings.crossfadeDurationSeconds);
+    final remaining = duration - position;
+    if (remaining > fadeDuration || remaining <= Duration.zero) return;
+
+    final queue = ref.read(queueProvider);
+    if (queue.isEmpty) return;
+
+    final current = ref.read(queueIndexProvider);
+    final nextIndex = _nextIndex(
+      queueLength: queue.length,
+      current: current,
+      shuffle: ref.read(shuffleProvider),
+      repeatMode: repeatMode,
+    );
+    if (nextIndex == null) return;
+
+    _crossfadeStarted = true;
+    final nextSong = queue[nextIndex];
+    ref.read(queueIndexProvider.notifier).setIndex(nextIndex);
+    ref.read(currentSongProvider.notifier).setSong(nextSong);
+
+    unawaited(
+      service
+          .crossfadeTo(
+            nextSong.path,
+            duration: fadeDuration < remaining ? fadeDuration : remaining,
+          )
+          .then(
+            (_) => _crossfadeStarted = false,
+            onError: (Object _, StackTrace __) {
+              _crossfadeStarted = false;
+            },
+          ),
+    );
+  }
+
+  int? _nextIndex({
+    required int queueLength,
+    required int current,
+    required bool shuffle,
+    required PlaybackRepeatMode repeatMode,
+  }) {
+    if (queueLength == 0) return null;
+    if (repeatMode == PlaybackRepeatMode.one) return current;
+
+    if (shuffle) {
+      if (queueLength == 1) return 0;
+      var next = DateTime.now().millisecondsSinceEpoch % queueLength;
+      while (next == current) {
+        next = (next + 1) % queueLength;
+      }
+      return next;
+    }
+
+    if (current < queueLength - 1) return current + 1;
+    if (repeatMode == PlaybackRepeatMode.all) return 0;
+    return null;
   }
 
   /// Play a specific song.
@@ -45,6 +132,10 @@ class PlaybackController {
 
   /// Play the next song.
   Future<void> next({bool fromCompletion = false}) async {
+    if (fromCompletion && !ref.read(settingsProvider).autoPlay) {
+      return;
+    }
+
     final queue = ref.read(queueProvider);
 
     if (queue.isEmpty) return;
@@ -61,28 +152,13 @@ class PlaybackController {
       return;
     }
 
-    final shuffle = ref.read(shuffleProvider);
-    int nextIndex;
-
-    if (shuffle) {
-      if (queue.length == 1) {
-        nextIndex = 0;
-      } else {
-        do {
-          nextIndex = DateTime.now().millisecondsSinceEpoch % queue.length;
-        } while (nextIndex == current);
-      }
-    } else {
-      if (current >= queue.length - 1) {
-        if (fromCompletion && repeatMode == PlaybackRepeatMode.all) {
-          nextIndex = 0;
-        } else {
-          return;
-        }
-      } else {
-        nextIndex = current + 1;
-      }
-    }
+    final nextIndex = _nextIndex(
+      queueLength: queue.length,
+      current: current,
+      shuffle: ref.read(shuffleProvider),
+      repeatMode: repeatMode,
+    );
+    if (nextIndex == null) return;
 
     final nextSong = queue[nextIndex];
 
@@ -117,8 +193,12 @@ class PlaybackController {
 
   void dispose() {
     _completedSubscription?.cancel();
+    _positionSubscription?.cancel();
   }
 }
-final playbackControllerProvider = Provider<PlaybackController>(
-  (ref) => PlaybackController(ref),
-);
+final playbackControllerProvider = Provider<PlaybackController>((ref) {
+  final controller = PlaybackController(ref);
+  controller.startListening();
+  ref.onDispose(controller.dispose);
+  return controller;
+});

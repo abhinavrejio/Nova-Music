@@ -3,11 +3,12 @@ import 'dart:io';
 class MusicScanner {
   static const _extensions = {
     '.mp3',
-    '.flac',
-    '.wav',
     '.m4a',
     '.aac',
+    '.flac',
+    '.wav',
     '.ogg',
+    '.opus',
   };
 
   Future<List<File>> scanFolder(String folderPath) async {
