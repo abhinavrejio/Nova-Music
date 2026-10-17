@@ -15,13 +15,15 @@ import '../../providers/playback/playback_controller_provider.dart';
 import '../../providers/playback/playback_mode_provider.dart';
 import '../../providers/playback/playback_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/playlists/favorites_provider.dart';
 import '../lyrics/widgets/lyrics_now_playing_panel.dart';
-import '../../shared/widgets/glass_surface.dart';
+import '../lyrics/lyrics_page.dart';
+import '../../services/keyboard_shortcut_service.dart';
 import 'player_widgets.dart';
 import 'widgets/player_backdrop.dart';
 
 class PlayerPage extends ConsumerStatefulWidget {
-  const PlayerPage({super.key, this.showLyricsInitially = false});
+  const PlayerPage({super.key, this.showLyricsInitially = true});
 
   final bool showLyricsInitially;
 
@@ -53,6 +55,47 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
     }
   }
 
+  void _showKeyboardShortcuts() {
+    final settings = ref.read(settingsProvider);
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Keyboard shortcuts'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ShortcutRow(
+              keys: KeyboardShortcutService.display(settings.playPauseShortcut),
+              action: 'Play or pause',
+            ),
+            _ShortcutRow(
+              keys:
+                  '${KeyboardShortcutService.display(settings.seekBackwardShortcut)} / ${KeyboardShortcutService.display(settings.seekForwardShortcut)}',
+              action: 'Seek 5 seconds',
+            ),
+            _ShortcutRow(
+              keys: KeyboardShortcutService.display(
+                settings.previousTrackShortcut,
+              ),
+              action: 'Previous track',
+            ),
+            _ShortcutRow(
+              keys: KeyboardShortcutService.display(settings.nextTrackShortcut),
+              action: 'Next track',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     if (_fullscreen) {
@@ -77,13 +120,216 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
     final settings = ref.watch(settingsProvider);
     final artworkGradient =
         ref.watch(albumArtworkColorProvider(song.path)).value ??
-        const Color(0xFFFF6B5F);
-    final animationsEnabled = settings.animationsEnabled;
+        const Color(0xFFDF6B3E);
+    final animationsEnabled =
+        settings.animationsEnabled && !MediaQuery.of(context).disableAnimations;
     final totalDuration = duration.value ?? song.duration;
     final elapsed = position.value ?? Duration.zero;
 
+    final favorite = ref.watch(favoritesProvider).contains(song.path);
+    final colors = Theme.of(context).colorScheme;
+    final panel = colors.surface.withValues(alpha: .88);
+    final wide = MediaQuery.sizeOf(context).width >= 900;
+    final artwork = Hero(
+      tag: 'artwork-${song.path}',
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: song.artwork == null
+              ? ColoredBox(
+                  color: colors.surfaceContainerHighest,
+                  child: const Icon(Icons.album_rounded, size: 90),
+                )
+              : Image.memory(song.artwork!, fit: BoxFit.cover),
+        ),
+      ),
+    );
+    final playerCard = Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: panel,
+        border: Border.all(color: colors.onSurface.withValues(alpha: .12)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'NOW PLAYING',
+            style: Theme.of(context).textTheme.labelSmall
+                ?.copyWith(color: colors.primary, letterSpacing: 1.4),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
+                  song.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    height: .98,
+                    letterSpacing: -1.5,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: favorite
+                    ? 'Remove from liked songs'
+                    : 'Add to liked songs',
+                onPressed: () =>
+                    ref.read(favoritesProvider.notifier).toggle(song.path),
+                icon: Icon(
+                  favorite ? Icons.favorite : Icons.favorite_border,
+                  color: favorite ? colors.primary : null,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${song.artist.isEmpty ? 'Unknown Artist' : song.artist}${song.album.isEmpty ? '' : ' · ${song.album}'}',
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: colors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 24),
+          ProgressBar(
+            progress: elapsed,
+            total: totalDuration,
+            barHeight: 4,
+            thumbRadius: 7,
+            timeLabelPadding: 8,
+            timeLabelTextStyle: Theme.of(context).textTheme.labelSmall
+                ?.copyWith(color: colors.onSurfaceVariant),
+            onSeek: (value) => ref.read(audioPlayerProvider).seek(value),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _PlayerControl(
+                tooltip: shuffle ? 'Turn shuffle off' : 'Turn shuffle on',
+                icon: Icons.shuffle_rounded,
+                active: shuffle,
+                onPressed: () => ref.read(shuffleProvider.notifier).toggle(),
+              ),
+              _PlayerControl(
+                tooltip: 'Previous track',
+                icon: Icons.skip_previous_rounded,
+                size: 30,
+                onPressed: () =>
+                    ref.read(playbackControllerProvider).previous(),
+              ),
+              SizedBox(
+                width: 64,
+                height: 64,
+                child: FloatingActionButton(
+                  heroTag: 'now-playing-toggle',
+                  tooltip:
+                      'Play or pause (${KeyboardShortcutService.display(settings.playPauseShortcut)})',
+                  onPressed: () => ref
+                      .read(audioPlayerProvider)
+                      .togglePlayPauseFor(song.path),
+                  child: Icon(
+                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    size: 34,
+                  ),
+                ),
+              ),
+              _PlayerControl(
+                tooltip: 'Next track',
+                icon: Icons.skip_next_rounded,
+                size: 30,
+                onPressed: () => ref.read(playbackControllerProvider).next(),
+              ),
+              _PlayerControl(
+                tooltip: repeatMode == PlaybackRepeatMode.off
+                    ? 'Repeat off'
+                    : repeatMode == PlaybackRepeatMode.one
+                    ? 'Repeat one'
+                    : 'Repeat all',
+                icon: repeatMode == PlaybackRepeatMode.one
+                    ? Icons.repeat_one_rounded
+                    : Icons.repeat_rounded,
+                active: repeatMode != PlaybackRepeatMode.off,
+                onPressed: () =>
+                    ref.read(repeatModeProvider.notifier).nextMode(),
+              ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Divider(height: 1),
+          ),
+          Row(
+            children: [
+              Text(
+                'LIVE LYRICS',
+                style: Theme.of(context).textTheme.labelSmall
+                    ?.copyWith(color: colors.primary, letterSpacing: 1.2),
+              ),
+              const Spacer(),
+              _FloatingIconButton(
+                tooltip: _showLyrics ? 'Hide lyrics' : 'Show lyrics',
+                icon: _showLyrics
+                    ? Icons.lyrics_rounded
+                    : Icons.lyrics_outlined,
+                active: _showLyrics,
+                onPressed: () => setState(() => _showLyrics = !_showLyrics),
+              ),
+              _FloatingIconButton(
+                tooltip: 'Open full-screen lyrics',
+                icon: Icons.open_in_full_rounded,
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => LyricsPage(
+                      title: song.title,
+                      artist: song.artist,
+                      trackId: song.path,
+                      artwork: song.artwork,
+                      album: song.album,
+                      duration: totalDuration,
+                    ),
+                  ),
+                ),
+              ),
+              if (!kIsWeb && Platform.isWindows)
+                _FloatingIconButton(
+                  tooltip: _fullscreen ? 'Exit full screen' : 'Full screen',
+                  icon: _fullscreen
+                      ? Icons.fullscreen_exit_rounded
+                      : Icons.fullscreen_rounded,
+                  onPressed: _toggleFullscreen,
+                ),
+            ],
+          ),
+          if (_showLyrics)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: LyricsNowPlayingPanel(
+                  title: song.title,
+                  artist: song.artist,
+                  trackId: song.path,
+                  album: song.album,
+                  duration: totalDuration,
+                ),
+              ),
+            )
+          else
+            const SizedBox(
+              height: 90,
+              child: Center(child: Text('Lyrics hidden')),
+            ),
+        ],
+      ),
+    );
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF100D0B),
       body: Stack(
         children: [
           Positioned.fill(
@@ -99,228 +345,125 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
               amoledBlack: settings.amoledBlack,
             ),
           ),
-          Positioned.fill(
-            child: SafeArea(
-              child: Stack(
-                children: [
-                  if (!_fullscreen)
-                    Positioned(
-                      top: 4,
-                      left: 6,
-                      child: _FloatingIconButton(
-                        tooltip: 'Back',
-                        icon: Icons.arrow_back_rounded,
-                        onPressed: () => Navigator.of(context).maybePop(),
+          SafeArea(
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 62,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: _FloatingIconButton(
+                          tooltip: 'Back',
+                          icon: Icons.close_rounded,
+                          onPressed: () => Navigator.of(context).maybePop(),
+                        ),
                       ),
-                    ),
-                  Positioned.fill(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final wide = constraints.maxWidth >= 960;
-                        final artworkSize = wide && !_showLyrics
-                            ? (constraints.maxHeight * .59).clamp(340.0, 640.0)
-                            : wide
-                            ? (constraints.maxWidth * .34).clamp(240.0, 360.0)
-                            : ((constraints.maxWidth - 44) * .82).clamp(
-                                220.0,
-                                360.0,
-                              );
-
-                        final controls = _PlayerControls(
-                          songPath: song.path,
-                          title: song.title,
-                          artist: song.artist,
-                          album: song.album,
-                          artwork: song.artwork,
-                          artworkSize: artworkSize,
-                          elapsed: elapsed,
-                          totalDuration: totalDuration,
-                          isPlaying: isPlaying,
-                          shuffle: shuffle,
-                          repeatMode: repeatMode,
-                          actions: Row(
-                            children: [
-                              const Spacer(),
-                              _FloatingIconButton(
-                                tooltip: _showLyrics
-                                    ? 'Hide lyrics'
-                                    : 'Show lyrics',
-                                icon: _showLyrics
-                                    ? Icons.lyrics_rounded
-                                    : Icons.lyrics_outlined,
-                                active: _showLyrics,
-                                onPressed: () =>
-                                    setState(() => _showLyrics = !_showLyrics),
-                              ),
-                              if (!kIsWeb && Platform.isWindows)
-                                _FloatingIconButton(
-                                  tooltip: _fullscreen
-                                      ? 'Exit full screen'
-                                      : 'Full screen',
-                                  icon: _fullscreen
-                                      ? Icons.fullscreen_exit_rounded
-                                      : Icons.fullscreen_rounded,
-                                  onPressed: _toggleFullscreen,
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'PLAYING FROM LOCAL LIBRARY',
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: colors.primary,
+                                  letterSpacing: 1.1,
                                 ),
-                            ],
                           ),
-                          onSeek: (value) =>
-                              ref.read(audioPlayerProvider).seek(value),
-                          onTogglePlayPause: () =>
-                              ref.read(audioPlayerProvider).togglePlayPause(),
-                          onPrevious: () =>
-                              ref.read(playbackControllerProvider).previous(),
-                          onNext: () =>
-                              ref.read(playbackControllerProvider).next(),
-                          onShuffle: () =>
-                              ref.read(shuffleProvider.notifier).toggle(),
-                          onRepeat: () =>
-                              ref.read(repeatModeProvider.notifier).nextMode(),
-                        );
-
-                        final topInset = wide ? 20.0 : 58.0;
-                        final bottomInset = wide ? 20.0 : 30.0;
-                        final controlsPane = SingleChildScrollView(
-                          padding: EdgeInsets.fromLTRB(
-                            wide ? 20 : 22,
-                            topInset,
-                            wide ? 20 : 22,
-                            bottomInset,
+                          Text(
+                            song.album.isEmpty ? 'Your library' : song.album,
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minHeight:
-                                  (constraints.maxHeight -
-                                          topInset -
-                                          bottomInset)
-                                      .clamp(0.0, double.infinity),
-                            ),
-                            child: Center(
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: wide && _showLyrics ? 760 : 900,
-                                ),
-                                child: settings.liquidGlass
-                                    ? GlassSurface(
-                                        blur: settings.glassBlurSigma,
-                                        surfaceOpacity:
-                                            settings.glassSurfaceOpacity,
-                                        borderRadius: BorderRadius.circular(30),
-                                        padding: const EdgeInsets.fromLTRB(
-                                          14,
-                                          10,
-                                          14,
-                                          4,
-                                        ),
-                                        child: controls,
-                                      )
-                                    : controls,
-                              ),
-                            ),
+                          Text(
+                            'OUTPUTTING TO THIS DEVICE',
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(color: colors.onSurfaceVariant),
                           ),
-                        );
-
-                        if (wide && _showLyrics) {
-                          return Padding(
-                            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-                            child: Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 1480,
-                                ),
-                                child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Expanded(flex: 5, child: controlsPane),
-                                    const SizedBox(width: 20),
-                                    Expanded(
-                                      flex: 5,
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(top: 54),
-                                        child: settings.liquidGlass
-                                            ? GlassSurface(
-                                                blur: settings.glassBlurSigma,
-                                                surfaceOpacity: settings
-                                                    .glassSurfaceOpacity,
-                                                borderRadius:
-                                                    BorderRadius.circular(30),
-                                                padding: const EdgeInsets.all(
-                                                  12,
-                                                ),
-                                                child: LyricsNowPlayingPanel(
-                                                  title: song.title,
-                                                  artist: song.artist,
-                                                  trackId: song.path,
-                                                  album: song.album,
-                                                  duration: totalDuration,
-                                                ),
-                                              )
-                                            : LyricsNowPlayingPanel(
-                                                title: song.title,
-                                                artist: song.artist,
-                                                trackId: song.path,
-                                                album: song.album,
-                                                duration: totalDuration,
-                                              ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                        ],
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: PopupMenuButton<String>(
+                          tooltip: 'More options',
+                          onSelected: (value) {
+                            if (value == 'queue') {
+                              Navigator.of(context).pushNamed('/queue');
+                            } else if (value == 'shortcuts') {
+                              _showKeyboardShortcuts();
+                            }
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                              value: 'queue',
+                              child: Text('Open queue'),
                             ),
-                          );
-                        }
-
-                        if (_showLyrics) {
-                          return Column(
-                            children: [
-                              Expanded(child: controlsPane),
-                              SizedBox(
-                                height: constraints.maxHeight * .48,
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    12,
-                                    0,
-                                    12,
-                                    12,
-                                  ),
-                                  child: settings.liquidGlass
-                                      ? GlassSurface(
-                                          blur: settings.glassBlurSigma,
-                                          surfaceOpacity:
-                                              settings.glassSurfaceOpacity,
-                                          borderRadius: BorderRadius.circular(
-                                            26,
-                                          ),
-                                          padding: const EdgeInsets.all(8),
-                                          child: LyricsNowPlayingPanel(
-                                            title: song.title,
-                                            artist: song.artist,
-                                            trackId: song.path,
-                                            album: song.album,
-                                            duration: totalDuration,
-                                          ),
-                                        )
-                                      : LyricsNowPlayingPanel(
-                                          title: song.title,
-                                          artist: song.artist,
-                                          trackId: song.path,
-                                          album: song.album,
-                                          duration: totalDuration,
-                                        ),
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-
-                        return controlsPane;
-                      },
-                    ),
+                            PopupMenuItem(
+                              value: 'shortcuts',
+                              child: Text('Keyboard shortcuts'),
+                            ),
+                          ],
+                          child: const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Icon(Icons.more_horiz_rounded),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, box) {
+                      if (wide) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(32, 24, 32, 32),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                flex: 11,
+                                child: Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 620,
+                                    ),
+                                    child: artwork,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 56),
+                              Expanded(
+                                flex: 10,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 620,
+                                  ),
+                                  child: playerCard,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.all(22),
+                        child: Column(
+                          children: [
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 430),
+                              child: artwork,
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(height: 560, child: playerCard),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -329,6 +472,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
   }
 }
 
+// ignore: unused_element
 class _PlayerControls extends StatelessWidget {
   const _PlayerControls({
     required this.songPath,
@@ -340,6 +484,7 @@ class _PlayerControls extends StatelessWidget {
     required this.elapsed,
     required this.totalDuration,
     required this.isPlaying,
+    required this.motionEnabled,
     required this.shuffle,
     required this.repeatMode,
     required this.actions,
@@ -360,6 +505,7 @@ class _PlayerControls extends StatelessWidget {
   final Duration elapsed;
   final Duration totalDuration;
   final bool isPlaying;
+  final bool motionEnabled;
   final bool shuffle;
   final PlaybackRepeatMode repeatMode;
   final Widget actions;
@@ -374,22 +520,27 @@ class _PlayerControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Center(
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: .96, end: 1),
-            duration: const Duration(milliseconds: 520),
+            duration: motionEnabled
+                ? const Duration(milliseconds: 520)
+                : Duration.zero,
             curve: Curves.easeOutCubic,
             builder: (context, scale, child) =>
                 Transform.scale(scale: scale, child: child),
             child: Hero(
               tag: 'artwork-$songPath',
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 650),
+                duration: motionEnabled
+                    ? const Duration(milliseconds: 650)
+                    : Duration.zero,
                 curve: Curves.easeInOutCubic,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
                       color: theme.colorScheme.primary.withValues(
@@ -410,8 +561,7 @@ class _PlayerControls extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 24),
-        const SizedBox(height: 18),
+        const SizedBox(height: 28),
         Text(
           title,
           textAlign: TextAlign.center,
@@ -475,8 +625,8 @@ class _PlayerControls extends StatelessWidget {
                   onPressed: onPrevious,
                 ),
                 SizedBox(
-                  width: 72,
-                  height: 72,
+                  width: 64,
+                  height: 64,
                   child: FloatingActionButton(
                     heroTag: 'now-playing-toggle',
                     onPressed: onTogglePlayPause,
@@ -484,7 +634,7 @@ class _PlayerControls extends StatelessWidget {
                       isPlaying
                           ? Icons.pause_rounded
                           : Icons.play_arrow_rounded,
-                      size: 36,
+                      size: 34,
                     ),
                   ),
                 ),
@@ -575,6 +725,32 @@ class _PlayerControl extends StatelessWidget {
           ? theme.colorScheme.primary
           : theme.colorScheme.onSurfaceVariant,
       icon: Icon(icon),
+    );
+  }
+}
+
+class _ShortcutRow extends StatelessWidget {
+  const _ShortcutRow({required this.keys, required this.action});
+
+  final String keys;
+  final String action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 116,
+            child: Text(
+              keys,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(child: Text(action)),
+        ],
+      ),
     );
   }
 }

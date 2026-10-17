@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/audio/audio_player_provider.dart';
 import '../../../providers/playback/playback_provider.dart';
 import '../lyrics_provider.dart';
+import 'genius_details_button.dart';
 import 'lyrics_scroll_view.dart';
 
 class LyricsNowPlayingPanel extends ConsumerWidget {
@@ -41,14 +42,18 @@ class LyricsNowPlayingPanel extends ConsumerWidget {
         children: [
           Row(
             children: [
+              GeniusDetailsButton(title: title, artist: artist),
               const Spacer(),
               lyrics.whenOrNull(
                     data: (value) => value == null
                         ? null
                         : Text(
                             value.hasWordSync
-                                ? 'WORD-BY-WORD · ${value.cached ? 'SAVED OFFLINE' : value.source}'
+                                ? 'WORD SYNC · ${value.cached ? 'SAVED OFFLINE' : value.source}'
                                 : 'LINE SYNC · ${value.cached ? 'SAVED OFFLINE' : value.source}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                               letterSpacing: .6,

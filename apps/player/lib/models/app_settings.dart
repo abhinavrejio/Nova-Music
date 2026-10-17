@@ -18,6 +18,7 @@ class AppSettings {
   final bool animationsEnabled;
   final bool adaptiveGlass;
   final GlassQuality glassQuality;
+  final double glassSurfaceOpacity;
 
   // Kept for backwards compatibility with saved settings and callers.
   final bool hardwareAcceleration;
@@ -35,6 +36,7 @@ class AppSettings {
   // Playback
   final bool shuffle;
   final int repeatMode;
+  final bool restoreLastTrack;
 
   // Mini player
   final bool miniPlayerShowShuffle;
@@ -44,9 +46,23 @@ class AppSettings {
   // Sidebar
   final bool compactSidebar;
   final bool sidebarShowTagline;
+  final double leftSidebarWidth;
+  final double rightSidebarWidth;
+
+  // Keyboard shortcuts are stored as normalized combinations such as
+  // `space` or `ctrl+arrowright` so they can be edited without code changes.
+  final String playPauseShortcut;
+  final String seekBackwardShortcut;
+  final String seekForwardShortcut;
+  final String previousTrackShortcut;
+  final String nextTrackShortcut;
   final BackgroundStyle backgroundStyle;
   final int backgroundColorValue;
   final String? wallpaperPath;
+
+  // Privacy
+  final bool privateSession;
+  final bool personalizedRecommendations;
 
   const AppSettings({
     required this.themeMode,
@@ -55,10 +71,11 @@ class AppSettings {
     this.hardwareAcceleration = true,
     this.amoledBlack = false,
     this.showGradient = true,
-    this.accentColorValue = 0xFFFF6B5F,
+    this.accentColorValue = 0xFFDF6B3E,
     this.animationsEnabled = true,
     this.adaptiveGlass = true,
     this.glassQuality = GlassQuality.balanced,
+    this.glassSurfaceOpacity = .64,
     this.autoPlay = true,
     this.crossfadeEnabled = false,
     this.crossfadeDurationSeconds = 5,
@@ -67,14 +84,24 @@ class AppSettings {
     this.searchShowPlaylists = true,
     this.shuffle = false,
     this.repeatMode = 0,
+    this.restoreLastTrack = false,
     this.miniPlayerShowShuffle = true,
     this.miniPlayerShowRepeat = true,
     this.miniPlayerShowQueue = true,
     this.compactSidebar = false,
     this.sidebarShowTagline = true,
-    this.backgroundStyle = BackgroundStyle.gradient,
-    this.backgroundColorValue = 0xFFFF6B5F,
+    this.leftSidebarWidth = 264,
+    this.rightSidebarWidth = 320,
+    this.playPauseShortcut = 'space',
+    this.seekBackwardShortcut = 'arrowleft',
+    this.seekForwardShortcut = 'arrowright',
+    this.previousTrackShortcut = 'ctrl+arrowleft',
+    this.nextTrackShortcut = 'ctrl+arrowright',
+    this.backgroundStyle = BackgroundStyle.albumArtwork,
+    this.backgroundColorValue = 0xFFDF6B3E,
     this.wallpaperPath,
+    this.privateSession = false,
+    this.personalizedRecommendations = true,
   });
 
   bool get gradientBackground => showGradient;
@@ -84,15 +111,24 @@ class AppSettings {
     GlassQuality.balanced => 18,
     GlassQuality.high => 28,
   };
-  double get glassSurfaceOpacity => switch (glassQuality) {
-    GlassQuality.low => .78,
-    GlassQuality.balanced => .64,
-    GlassQuality.high => .52,
-  };
+  static double clampGlassSurfaceOpacity(double value) {
+    if (value.isNaN || value.isInfinite) return .64;
+    return value.clamp(.42, .88).toDouble();
+  }
 
   static double clampUiScale(double value) {
     if (value.isNaN || value.isInfinite) return 1.0;
     return value.clamp(minUiScale, maxUiScale).toDouble();
+  }
+
+  static double clampLeftSidebarWidth(double value) {
+    if (value.isNaN || value.isInfinite) return 264;
+    return value.clamp(208, 380).toDouble();
+  }
+
+  static double clampRightSidebarWidth(double value) {
+    if (value.isNaN || value.isInfinite) return 320;
+    return value.clamp(260, 440).toDouble();
   }
 
   AppSettings copyWith({
@@ -106,6 +142,7 @@ class AppSettings {
     bool? animationsEnabled,
     bool? adaptiveGlass,
     GlassQuality? glassQuality,
+    double? glassSurfaceOpacity,
     bool? autoPlay,
     bool? crossfadeEnabled,
     int? crossfadeDurationSeconds,
@@ -114,15 +151,25 @@ class AppSettings {
     bool? searchShowPlaylists,
     bool? shuffle,
     int? repeatMode,
+    bool? restoreLastTrack,
     bool? miniPlayerShowShuffle,
     bool? miniPlayerShowRepeat,
     bool? miniPlayerShowQueue,
     bool? compactSidebar,
     bool? sidebarShowTagline,
+    double? leftSidebarWidth,
+    double? rightSidebarWidth,
+    String? playPauseShortcut,
+    String? seekBackwardShortcut,
+    String? seekForwardShortcut,
+    String? previousTrackShortcut,
+    String? nextTrackShortcut,
     BackgroundStyle? backgroundStyle,
     int? backgroundColorValue,
     String? wallpaperPath,
     bool clearWallpaperPath = false,
+    bool? privateSession,
+    bool? personalizedRecommendations,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -135,6 +182,9 @@ class AppSettings {
       animationsEnabled: animationsEnabled ?? this.animationsEnabled,
       adaptiveGlass: adaptiveGlass ?? this.adaptiveGlass,
       glassQuality: glassQuality ?? this.glassQuality,
+      glassSurfaceOpacity: glassSurfaceOpacity == null
+          ? this.glassSurfaceOpacity
+          : clampGlassSurfaceOpacity(glassSurfaceOpacity),
       autoPlay: autoPlay ?? this.autoPlay,
       crossfadeEnabled: crossfadeEnabled ?? this.crossfadeEnabled,
       crossfadeDurationSeconds: crossfadeDurationSeconds == null
@@ -145,17 +195,33 @@ class AppSettings {
       searchShowPlaylists: searchShowPlaylists ?? this.searchShowPlaylists,
       shuffle: shuffle ?? this.shuffle,
       repeatMode: repeatMode ?? this.repeatMode,
+      restoreLastTrack: restoreLastTrack ?? this.restoreLastTrack,
       miniPlayerShowShuffle:
           miniPlayerShowShuffle ?? this.miniPlayerShowShuffle,
       miniPlayerShowRepeat: miniPlayerShowRepeat ?? this.miniPlayerShowRepeat,
       miniPlayerShowQueue: miniPlayerShowQueue ?? this.miniPlayerShowQueue,
       compactSidebar: compactSidebar ?? this.compactSidebar,
       sidebarShowTagline: sidebarShowTagline ?? this.sidebarShowTagline,
+      leftSidebarWidth: leftSidebarWidth == null
+          ? this.leftSidebarWidth
+          : clampLeftSidebarWidth(leftSidebarWidth),
+      rightSidebarWidth: rightSidebarWidth == null
+          ? this.rightSidebarWidth
+          : clampRightSidebarWidth(rightSidebarWidth),
+      playPauseShortcut: playPauseShortcut ?? this.playPauseShortcut,
+      seekBackwardShortcut: seekBackwardShortcut ?? this.seekBackwardShortcut,
+      seekForwardShortcut: seekForwardShortcut ?? this.seekForwardShortcut,
+      previousTrackShortcut:
+          previousTrackShortcut ?? this.previousTrackShortcut,
+      nextTrackShortcut: nextTrackShortcut ?? this.nextTrackShortcut,
       backgroundStyle: backgroundStyle ?? this.backgroundStyle,
       backgroundColorValue: backgroundColorValue ?? this.backgroundColorValue,
       wallpaperPath: clearWallpaperPath
           ? null
           : wallpaperPath ?? this.wallpaperPath,
+      privateSession: privateSession ?? this.privateSession,
+      personalizedRecommendations:
+          personalizedRecommendations ?? this.personalizedRecommendations,
     );
   }
 
@@ -166,10 +232,11 @@ class AppSettings {
     hardwareAcceleration: true,
     amoledBlack: false,
     showGradient: true,
-    accentColorValue: 0xFFFF6B5F,
+    accentColorValue: 0xFFDF6B3E,
     animationsEnabled: true,
     adaptiveGlass: true,
     glassQuality: GlassQuality.balanced,
+    glassSurfaceOpacity: .64,
     autoPlay: true,
     crossfadeEnabled: false,
     crossfadeDurationSeconds: 5,
@@ -178,12 +245,13 @@ class AppSettings {
     searchShowPlaylists: true,
     shuffle: false,
     repeatMode: 0,
+    restoreLastTrack: false,
     miniPlayerShowShuffle: true,
     miniPlayerShowRepeat: true,
     miniPlayerShowQueue: true,
     compactSidebar: false,
     sidebarShowTagline: true,
-    backgroundStyle: BackgroundStyle.gradient,
-    backgroundColorValue: 0xFFFF6B5F,
+    backgroundStyle: BackgroundStyle.albumArtwork,
+    backgroundColorValue: 0xFFDF6B3E,
   );
 }

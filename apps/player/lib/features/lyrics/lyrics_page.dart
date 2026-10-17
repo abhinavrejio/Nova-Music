@@ -3,8 +3,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/app_settings.dart';
 import '../../providers/audio/audio_player_provider.dart';
 import '../../providers/playback/playback_provider.dart';
+import '../../providers/settings_provider.dart';
 import 'lyrics_provider.dart';
 import 'widgets/lyrics_scroll_view.dart';
 import '../player/widgets/player_backdrop.dart';
@@ -38,14 +40,31 @@ class LyricsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final settings = ref.watch(settingsProvider);
     final lyrics = ref.watch(lyricsProvider(query));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Lyrics'), centerTitle: true),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('Lyrics'),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+      ),
       body: Stack(
         children: [
           Positioned.fill(
-            child: PlayerBackdrop(artwork: artwork, motionEnabled: false),
+            child: PlayerBackdrop(
+              artwork: artwork,
+              motionEnabled: settings.animationsEnabled,
+              style: settings.amoledBlack
+                  ? BackgroundStyle.solidColor
+                  : settings.backgroundStyle,
+              gradientColor: Color(settings.backgroundColorValue),
+              gradientEnabled: settings.backgroundGradient,
+              wallpaperPath: settings.wallpaperPath,
+              amoledBlack: settings.amoledBlack,
+            ),
           ),
           SafeArea(
             child: Column(

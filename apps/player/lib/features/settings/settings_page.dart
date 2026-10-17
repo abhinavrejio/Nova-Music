@@ -8,12 +8,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/app_settings.dart';
 import '../../providers/library/library_folder_provider.dart';
 import '../../providers/library/library_provider.dart';
 import '../../providers/settings_provider.dart';
-import '../../services/adaptive_glass_service.dart';
+import '../../providers/recent_provider.dart';
+import '../../providers/most_played_provider.dart';
+import '../../services/keyboard_shortcut_service.dart';
+import '../../services/lyrics_credentials_service.dart';
+import '../search/music_catalog_providers.dart';
+import '../search/spotify_service.dart';
+import '../search/streaming_provider_credentials.dart';
+import 'widgets/shortcut_capture_dialog.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -22,12 +30,10 @@ class SettingsPage extends ConsumerStatefulWidget {
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends ConsumerState<SettingsPage>
-    with SingleTickerProviderStateMixin {
+class _SettingsPageState extends ConsumerState<SettingsPage> {
   static const _windowChannel = MethodChannel('nova/window');
   String _selected = 'General';
   final ScrollController _contentScrollController = ScrollController();
-  AdaptiveGlassScan? _lastGlassScan;
 
   static const List<_SettingsCategory> _categories = [
     _SettingsCategory(
@@ -39,6 +45,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
       title: 'Playback & Audio',
       subtitle: 'Playback and sound',
       icon: Icons.play_circle_outline_rounded,
+    ),
+    _SettingsCategory(
+      title: 'Keyboard Shortcuts',
+      subtitle: 'Personalize playback controls',
+      icon: Icons.keyboard_alt_outlined,
+    ),
+    _SettingsCategory(
+      title: 'Lyrics & Services',
+      subtitle: 'Timed lyrics and song details',
+      icon: Icons.lyrics_rounded,
     ),
     _SettingsCategory(
       title: 'Appearance',
@@ -70,30 +86,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
       subtitle: 'Nova Music',
       icon: Icons.info_outline_rounded,
     ),
+    _SettingsCategory(
+      title: 'Privacy',
+      subtitle: 'Listening activity and recommendations',
+      icon: Icons.shield_outlined,
+    ),
   ];
 
   @override
   void dispose() {
     _contentScrollController.dispose();
     super.dispose();
-  }
-
-  Future<void> _scanGlass(
-    BuildContext context,
-    SettingsNotifier notifier,
-  ) async {
-    final scan = await showDialog<AdaptiveGlassScan>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _GlassBenchmarkDialog(
-        logicalProcessors: Platform.numberOfProcessors,
-        physicalSize: View.of(context).physicalSize,
-        vsync: this,
-      ),
-    );
-    if (scan == null || !mounted) return;
-    notifier.applyAdaptiveGlassScan(scan.quality);
-    setState(() => _lastGlassScan = scan);
   }
 
   Future<void> _setHardwareAcceleration(bool enabled) async {
@@ -147,7 +150,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
             return Padding(
               padding: const EdgeInsets.all(10),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(14),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(
                     sigmaX: settings.liquidGlass ? settings.glassBlurSigma : 0,
@@ -160,7 +163,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                             ? settings.glassSurfaceOpacity
                             : .94,
                       ),
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: Theme.of(context).colorScheme.onSurface
                             .withValues(alpha: .10),
@@ -181,7 +184,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(0, 12, 12, 12),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(14),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(
                         sigmaX: settings.liquidGlass
@@ -199,7 +202,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                                     ? settings.glassSurfaceOpacity
                                     : .90,
                               ),
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: Theme.of(context).colorScheme.onSurface
                                 .withValues(alpha: .10),
@@ -226,13 +229,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
   }
 
   Widget _buildSidebar(BuildContext context, AppSettings settings) {
-    final motion = settings.animationsEnabled;
+    final motion =
+        settings.animationsEnabled && !MediaQuery.of(context).disableAnimations;
     final theme = Theme.of(context);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(14),
         child: BackdropFilter(
           filter: ImageFilter.blur(
             sigmaX: settings.liquidGlass ? settings.glassBlurSigma : 0,
@@ -246,7 +250,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                     ? settings.glassSurfaceOpacity
                     : .94,
               ),
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: theme.colorScheme.onSurface.withValues(alpha: .10),
               ),
@@ -330,7 +334,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
   }
 
   Widget _buildContent(BuildContext context, AppSettings settings) {
-    final motion = settings.animationsEnabled;
+    final motion =
+        settings.animationsEnabled && !MediaQuery.of(context).disableAnimations;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -391,7 +396,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
   }
 
   Widget _buildMobile(BuildContext context, AppSettings settings) {
-    final motion = settings.animationsEnabled;
+    final motion =
+        settings.animationsEnabled && !MediaQuery.of(context).disableAnimations;
 
     return SafeArea(
       child: Column(
@@ -484,6 +490,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
         return _general(context, settings);
       case 'Playback & Audio':
         return _playbackAudio(context, settings);
+      case 'Keyboard Shortcuts':
+        return _keyboardShortcuts(context, settings);
+      case 'Lyrics & Services':
+        return _lyricsAndServices(context);
       case 'Appearance':
         return _appearance(context, settings);
       case 'Search':
@@ -496,6 +506,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
         return _advanced(context, settings);
       case 'About':
         return _about(context);
+      case 'Privacy':
+        return _privacy(context, settings);
       default:
         return const SizedBox.shrink();
     }
@@ -528,6 +540,367 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
         ),
       ],
     );
+  }
+
+  Widget _keyboardShortcuts(BuildContext context, AppSettings settings) {
+    final notifier = ref.read(settingsProvider.notifier);
+    return _page(
+      context,
+      icon: Icons.keyboard_alt_outlined,
+      title: 'Keyboard Shortcuts',
+      subtitle: 'Make playback feel natural with your own key bindings.',
+      children: [
+        _sectionTitle(
+          context,
+          'PLAYBACK CONTROLS',
+          'Select a shortcut, then press the key combination you want.',
+        ),
+        _settingsCard(
+          context,
+          children: [
+            _ShortcutSettingRow(
+              icon: Icons.play_arrow_rounded,
+              title: 'Play or pause',
+              shortcut: settings.playPauseShortcut,
+              onEdit: () => _editShortcut(
+                action: 'playPause',
+                current: settings.playPauseShortcut,
+                settings: settings,
+                onSave: notifier.setKeyboardShortcut,
+              ),
+            ),
+            _ShortcutSettingRow(
+              icon: Icons.replay_5_rounded,
+              title: 'Seek backward 5 seconds',
+              shortcut: settings.seekBackwardShortcut,
+              onEdit: () => _editShortcut(
+                action: 'seekBackward',
+                current: settings.seekBackwardShortcut,
+                settings: settings,
+                onSave: notifier.setKeyboardShortcut,
+              ),
+            ),
+            _ShortcutSettingRow(
+              icon: Icons.forward_5_rounded,
+              title: 'Seek forward 5 seconds',
+              shortcut: settings.seekForwardShortcut,
+              onEdit: () => _editShortcut(
+                action: 'seekForward',
+                current: settings.seekForwardShortcut,
+                settings: settings,
+                onSave: notifier.setKeyboardShortcut,
+              ),
+            ),
+            _ShortcutSettingRow(
+              icon: Icons.skip_previous_rounded,
+              title: 'Previous track',
+              shortcut: settings.previousTrackShortcut,
+              onEdit: () => _editShortcut(
+                action: 'previousTrack',
+                current: settings.previousTrackShortcut,
+                settings: settings,
+                onSave: notifier.setKeyboardShortcut,
+              ),
+            ),
+            _ShortcutSettingRow(
+              icon: Icons.skip_next_rounded,
+              title: 'Next track',
+              shortcut: settings.nextTrackShortcut,
+              onEdit: () => _editShortcut(
+                action: 'nextTrack',
+                current: settings.nextTrackShortcut,
+                settings: settings,
+                onSave: notifier.setKeyboardShortcut,
+              ),
+            ),
+          ],
+        ),
+        const _InfoTile(
+          icon: Icons.info_outline_rounded,
+          title: 'Shortcuts pause while you type',
+          subtitle: 'Text fields keep their normal keyboard behavior.',
+        ),
+      ],
+    );
+  }
+
+  Future<void> _editShortcut({
+    required String action,
+    required String current,
+    required AppSettings settings,
+    required void Function(String, String) onSave,
+  }) async {
+    final captured = await showDialog<String>(
+      context: context,
+      builder: (_) => ShortcutCaptureDialog(current: current),
+    );
+    if (captured == null || !mounted) return;
+    final existing = <String, String>{
+      'playPause': settings.playPauseShortcut,
+      'seekBackward': settings.seekBackwardShortcut,
+      'seekForward': settings.seekForwardShortcut,
+      'previousTrack': settings.previousTrackShortcut,
+      'nextTrack': settings.nextTrackShortcut,
+    }..remove(action);
+    if (existing.values.contains(captured)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('That shortcut is already in use.')),
+      );
+      return;
+    }
+    onSave(action, captured);
+  }
+
+  Widget _lyricsAndServices(BuildContext context) {
+    final credentials = LyricsCredentialsService.instance;
+    return _page(
+      context,
+      icon: Icons.lyrics_rounded,
+      title: 'Lyrics & Services',
+      subtitle:
+          'Set up music catalogs, accurate lyric timing, and song details.',
+      children: [
+        _sectionTitle(
+          context,
+          'MUSIC CATALOGS',
+          'Connect catalog search and account access for supported providers.',
+        ),
+        _credentialCard(
+          context,
+          title: 'Spotify client ID',
+          description: 'Enables Spotify sign-in with PKCE and catalog search. Add the loopback redirect used by Nova in your Spotify developer app.',
+          read: credentials.readSpotifyClientId,
+          save: credentials.saveSpotifyClientId,
+          remove: credentials.removeSpotifyClientId,
+          registrationUrl: 'https://developer.spotify.com/dashboard',
+          registrationLabel: 'Open Spotify dashboard',
+          onChange: () {
+            ref.invalidate(spotifyClientIdProvider);
+            ref.invalidate(spotifyConnectionProvider);
+            ref.invalidate(musicCatalogServicesProvider);
+          },
+        ),
+        _credentialCard(
+          context,
+          title: 'Apple Music developer token',
+          description: 'Enables Apple Music catalog search. Apple subscriber-library access needs a separate MusicKit authorization that this desktop build does not provide yet.',
+          read: credentials.readAppleMusicDeveloperToken,
+          save: credentials.saveAppleMusicDeveloperToken,
+          remove: credentials.removeAppleMusicDeveloperToken,
+          registrationUrl:
+              'https://developer.apple.com/account/resources/identifiers/list',
+          registrationLabel: 'Open Apple developer account',
+          onChange: () => ref.invalidate(musicCatalogServicesProvider),
+        ),
+        const _InfoTile(
+          icon: Icons.open_in_new_rounded,
+          title: 'Other streaming services',
+          subtitle: 'YouTube Music opens search in its own app or website. Nova does not proxy or re-stream provider audio.',
+        ),
+        _sectionTitle(
+          context,
+          'MUSIXMATCH',
+          'Fetch licensed timed lyrics. Real word highlighting appears when rich timing is available for a track.',
+        ),
+        _credentialCard(
+          context,
+          title: 'Musixmatch API key',
+          description: 'Your key is saved in secure storage on this device and never included in the project files.',
+          read: credentials.readMusixmatchKey,
+          save: credentials.saveMusixmatchKey,
+          remove: credentials.removeMusixmatchKey,
+          registrationUrl: 'https://developer.musixmatch.com/',
+          registrationLabel: 'Get a Musixmatch key',
+        ),
+        _sectionTitle(
+          context,
+          'GENIUS',
+          'Look up song, artist, album, and release details. Timed lyrics come from Musixmatch.',
+        ),
+        _credentialCard(
+          context,
+          title: 'Genius API token',
+          description: 'Save a Genius access token to show song details inside Nova. Without a token, the details button opens Genius search.',
+          read: credentials.readGeniusToken,
+          save: credentials.saveGeniusToken,
+          remove: credentials.removeGeniusToken,
+          registrationUrl: 'https://genius.com/api-clients',
+          registrationLabel: 'Create a Genius API client',
+        ),
+      ],
+    );
+  }
+
+  Widget _credentialCard(
+    BuildContext context, {
+    required String title,
+    required String description,
+    required Future<String?> Function() read,
+    required Future<void> Function(String) save,
+    required Future<void> Function() remove,
+    required String registrationUrl,
+    required String registrationLabel,
+    VoidCallback? onChange,
+  }) {
+    return _settingsCard(
+      context,
+      children: [
+        FutureBuilder<String?>(
+          future: read(),
+          builder: (context, snapshot) {
+            final connected = snapshot.data?.isNotEmpty == true;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.key_rounded,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          snapshot.connectionState == ConnectionState.waiting
+                              ? 'Checking secure storage…'
+                              : connected
+                              ? 'Token saved on this device'
+                              : 'Not configured',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: connected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: () async {
+                      final saved = await _editCredential(
+                        title: title,
+                        description: description,
+                        save: save,
+                      );
+                      if (saved && mounted) {
+                        onChange?.call();
+                        setState(() {});
+                      }
+                    },
+                    child: Text(connected ? 'Update' : 'Add key'),
+                  ),
+                  if (connected)
+                    IconButton(
+                      tooltip: 'Remove saved key',
+                      onPressed: () async {
+                        await remove();
+                        if (mounted) {
+                          onChange?.call();
+                          setState(() {});
+                        }
+                      },
+                      icon: const Icon(Icons.delete_outline_rounded),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => launchUrl(Uri.parse(registrationUrl)),
+                icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                label: Text(registrationLabel),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<bool> _editCredential({
+    required String title,
+    required String description,
+    required Future<void> Function(String) save,
+  }) async {
+    final controller = TextEditingController();
+    var saved = false;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: SizedBox(
+          width: 460,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(description),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                obscureText: true,
+                autocorrect: false,
+                enableSuggestions: false,
+                decoration: const InputDecoration(
+                  labelText: 'Access key or token',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_outline_rounded),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (controller.text.trim().isEmpty) return;
+              await save(controller.text);
+              saved = true;
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+            child: const Text('Save securely'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return saved;
   }
 
   Widget _playbackAudio(BuildContext context, AppSettings settings) {
@@ -639,7 +1012,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
     final notifier = ref.read(settingsProvider.notifier);
 
     const colors = [
-      0xFFFF6B5F,
+      0xFFDF6B3E,
       0xFF4D9FFF,
       0xFF55D6BE,
       0xFFA879FF,
@@ -698,7 +1071,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                 dropdownColor: Theme.of(context)
                     .colorScheme
                     .surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(10),
                 decoration: const InputDecoration(
                   labelText: 'Background',
                   prefixIcon: Icon(Icons.wallpaper_rounded),
@@ -756,12 +1129,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
         ),
         _sectionTitle(
           context,
-          'LIQUID GLASS',
-          'Tune blur strength and let Nova recommend a quality for this device.',
-        ),
-        _glassSettings(context, settings, notifier),
-        _sectionTitle(
-          context,
           'ACCENT COLOR',
           'Choose the color used for highlights and selected controls.',
         ),
@@ -783,9 +1150,101 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
               value: settings.compactSidebar,
               onChanged: notifier.setCompactSidebar,
             ),
+            _sidebarWidthTile(
+              context,
+              icon: Icons.view_sidebar_rounded,
+              title: 'Left sidebar width',
+              value: settings.leftSidebarWidth,
+              min: 208,
+              max: 380,
+              onChanged: notifier.setLeftSidebarWidth,
+            ),
+            _sidebarWidthTile(
+              context,
+              icon: Icons.vertical_split_rounded,
+              title: 'Now Playing sidebar width',
+              value: settings.rightSidebarWidth,
+              min: 260,
+              max: 440,
+              onChanged: notifier.setRightSidebarWidth,
+            ),
           ],
         ),
       ],
+    );
+  }
+
+  Widget _privacy(BuildContext context, AppSettings settings) {
+    final notifier = ref.read(settingsProvider.notifier);
+    final recentCount = ref.watch(recentProvider).length;
+    return _page(
+      context,
+      icon: Icons.shield_outlined,
+      title: 'Privacy',
+      subtitle: 'Control what is visible and how your listening data is used.',
+      children: [
+        _settingsCard(
+          context,
+          children: [
+            _switchTile(
+              context,
+              icon: Icons.visibility_off_outlined,
+              title: 'Private session',
+              subtitle: 'Temporarily hide your listening activity.',
+              value: settings.privateSession,
+              onChanged: (enabled) {
+                notifier.setPrivateSession(enabled);
+                if (enabled) {
+                  ref.read(recentProvider.notifier).clearHistory();
+                  ref.read(mostPlayedProvider.notifier).clearHistory();
+                }
+              },
+            ),
+            _switchTile(
+              context,
+              icon: Icons.auto_awesome_outlined,
+              title: 'Personalized recommendations',
+              subtitle: 'Use listening history to improve your mixes.',
+              value: settings.personalizedRecommendations,
+              onChanged: notifier.setPersonalizedRecommendations,
+            ),
+            _navigationTile(
+              context,
+              icon: Icons.history_rounded,
+              title: 'Listening data',
+              subtitle:
+                  '$recentCount recent listening events stored on this device',
+              onTap: () => _showListeningData(context, recentCount),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showListeningData(BuildContext context, int recentCount) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Listening data'),
+        content: Text(
+          '$recentCount recent listening events are stored on this device. Clear this activity?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+          FilledButton.tonal(
+            onPressed: () {
+              ref.read(recentProvider.notifier).clearHistory();
+              ref.read(mostPlayedProvider.notifier).clearHistory();
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Clear activity'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1007,7 +1466,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
 
   Widget _backgroundColorPicker(BuildContext context, AppSettings settings) {
     const colors = [
-      0xFFFF6B5F,
+      0xFFDF6B3E,
       0xFFFF9B71,
       0xFF4D9FFF,
       0xFF55D6BE,
@@ -1051,7 +1510,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                       'Background color ${Color(value).toARGB32().toRadixString(16)}',
                   selected: value == settings.backgroundColorValue,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(10),
                     onTap: () => notifier.setBackgroundColor(value),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
@@ -1099,7 +1558,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
         children: [
           if (settings.wallpaperPath != null && !kIsWeb) ...[
             ClipRRect(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(10),
               child: SizedBox(
                 height: 150,
                 child: Image.file(
@@ -1147,6 +1606,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
     );
   }
 
+  // ignore: unused_element
   Widget _glassSettings(
     BuildContext context,
     AppSettings settings,
@@ -1165,69 +1625,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
           onChanged: notifier.setLiquidGlass,
         ),
         if (settings.liquidGlass)
-          _switchTile(
-            context,
-            icon: Icons.auto_awesome_rounded,
-            title: 'Adaptive Glass',
-            subtitle: 'Measure a short glass preview and recommend a quality.',
-            value: settings.adaptiveGlass,
-            onChanged: (enabled) {
-              if (enabled) {
-                _scanGlass(context, notifier);
-              } else {
-                notifier.setAdaptiveGlass(false);
-              }
-            },
-          ),
-        if (settings.liquidGlass)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                DropdownButtonFormField<GlassQuality>(
-                  key: ValueKey(settings.glassQuality),
-                  initialValue: settings.glassQuality,
-                  dropdownColor: theme.colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(18),
-                  decoration: const InputDecoration(
-                    labelText: 'Glass quality',
-                    prefixIcon: Icon(Icons.blur_circular_rounded),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: GlassQuality.low,
-                      child: Text('Low · lighter blur'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Surface strength',
+                        style: theme.textTheme.titleSmall,
+                      ),
                     ),
-                    DropdownMenuItem(
-                      value: GlassQuality.balanced,
-                      child: Text('Balanced'),
-                    ),
-                    DropdownMenuItem(
-                      value: GlassQuality.high,
-                      child: Text('High · richer blur'),
+                    Text(
+                      '${(settings.glassSurfaceOpacity * 100).round()}%',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
-                  onChanged: (value) {
-                    if (value != null) notifier.setGlassQuality(value);
-                  },
                 ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () => _scanGlass(context, notifier),
-                  icon: const Icon(Icons.speed_rounded),
-                  label: const Text('Benchmark glass rendering'),
+                Slider(
+                  min: .42,
+                  max: .88,
+                  divisions: 23,
+                  value: settings.glassSurfaceOpacity,
+                  label: '${(settings.glassSurfaceOpacity * 100).round()}%',
+                  onChanged: notifier.setGlassSurfaceOpacity,
                 ),
-                if (_lastGlassScan case final scan?) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    'Recommended: ${scan.quality.name} · ${scan.description}. Frame timings include Flutter raster work; GPU model and utilization are not exposed.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                Text(
+                  'Adjust how solid glass surfaces appear.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -1436,7 +1868,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: children[i],
@@ -1764,6 +2196,37 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
       ),
     );
   }
+
+  Widget _sidebarWidthTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required double value,
+    required double min,
+    required double max,
+    required ValueChanged<double> onChanged,
+  }) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+    child: Column(
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 12),
+            Expanded(child: Text(title)),
+            Text('${value.round()} px'),
+          ],
+        ),
+        Slider(
+          value: value.clamp(min, max),
+          min: min,
+          max: max,
+          divisions: (max - min).round(),
+          onChanged: onChanged,
+        ),
+      ],
+    ),
+  );
 
   Widget _scaleTile(BuildContext context, AppSettings settings) {
     final notifier = ref.read(settingsProvider.notifier);
@@ -2128,6 +2591,30 @@ class _SidebarItemState extends State<_SidebarItem> {
   }
 }
 
+class _ShortcutSettingRow extends StatelessWidget {
+  const _ShortcutSettingRow({
+    required this.icon,
+    required this.title,
+    required this.shortcut,
+    required this.onEdit,
+  });
+
+  final IconData icon;
+  final String title;
+  final String shortcut;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+    title: Text(title),
+    trailing: OutlinedButton(
+      onPressed: onEdit,
+      child: Text(KeyboardShortcutService.display(shortcut)),
+    ),
+  );
+}
+
 class _InfoTile extends StatelessWidget {
   const _InfoTile({
     required this.icon,
@@ -2178,170 +2665,5 @@ class _InfoTile extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _GlassBenchmarkDialog extends StatefulWidget {
-  const _GlassBenchmarkDialog({
-    required this.logicalProcessors,
-    required this.physicalSize,
-    required this.vsync,
-  });
-
-  final int logicalProcessors;
-  final Size physicalSize;
-  final TickerProvider vsync;
-
-  @override
-  State<_GlassBenchmarkDialog> createState() => _GlassBenchmarkDialogState();
-}
-
-class _GlassBenchmarkDialogState extends State<_GlassBenchmarkDialog> {
-  final List<Duration> _rasterDurations = [];
-  late final AnimationController _controller;
-  Timer? _finishTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addTimingsCallback(_recordTimings);
-    _controller = AnimationController(
-      vsync: widget.vsync,
-      duration: const Duration(milliseconds: 1800),
-    )..addStatusListener(_handleAnimationStatus);
-    _controller.forward();
-  }
-
-  void _recordTimings(List<FrameTiming> timings) {
-    _rasterDurations.addAll(timings.map((timing) => timing.rasterDuration));
-  }
-
-  void _handleAnimationStatus(AnimationStatus status) {
-    if (status == AnimationStatus.completed) {
-      // Let Flutter deliver the final raster timing batch before reading it.
-      _finishTimer = Timer(const Duration(milliseconds: 120), _finishBenchmark);
-    }
-  }
-
-  void _finishBenchmark() {
-    if (!mounted) return;
-    WidgetsBinding.instance.removeTimingsCallback(_recordTimings);
-    final scan = AdaptiveGlassService.fromRasterTimings(
-      logicalProcessors: widget.logicalProcessors,
-      physicalSize: widget.physicalSize,
-      rasterDurations: _rasterDurations,
-    );
-    Navigator.of(context).pop(scan);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return AlertDialog(
-      title: const Text('Glass performance check'),
-      content: SizedBox(
-        width: 360,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final t = _controller.value;
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: SizedBox(
-                    height: 144,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment(-1 + t, -1),
-                              end: Alignment(1 - t, 1),
-                              colors: [
-                                theme.colorScheme.primary.withValues(alpha: .8),
-                                theme.colorScheme.tertiary.withValues(
-                                  alpha: .8,
-                                ),
-                                theme.colorScheme.secondary.withValues(
-                                  alpha: .8,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment(-.68 + t * 1.36, -.25),
-                          child: _benchmarkGlassSurface(theme, 1),
-                        ),
-                        Align(
-                          alignment: Alignment(.68 - t * 1.36, .25),
-                          child: _benchmarkGlassSurface(theme, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Running a brief animated blur preview and measuring Flutter raster frame times. This does not identify your GPU.',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-      ],
-    );
-  }
-
-  Widget _benchmarkGlassSurface(ThemeData theme, int seed) => ClipRRect(
-    borderRadius: BorderRadius.circular(20),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-      child: Container(
-        width: 112,
-        height: 92,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface.withValues(alpha: .38),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: .34),
-            width: 1.2,
-          ),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white.withValues(alpha: .32),
-              theme.colorScheme.surface.withValues(alpha: .16),
-            ],
-          ),
-        ),
-        child: Icon(
-          seed == 1 ? Icons.blur_on_rounded : Icons.circle,
-          color: Colors.white.withValues(alpha: .82),
-          size: seed == 1 ? 28 : 18,
-        ),
-      ),
-    ),
-  );
-
-  @override
-  void dispose() {
-    _finishTimer?.cancel();
-    WidgetsBinding.instance.removeTimingsCallback(_recordTimings);
-    _controller
-      ..removeStatusListener(_handleAnimationStatus)
-      ..dispose();
-    super.dispose();
   }
 }
