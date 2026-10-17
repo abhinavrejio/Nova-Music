@@ -12,6 +12,11 @@ import 'music_service.dart';
 import 'oauth_token_storage.dart';
 import 'streaming_provider_credentials.dart';
 
+const spotifyPlaybackScopes = <String>{
+  'user-read-playback-state',
+  'user-modify-playback-state',
+};
+
 /// Spotify's public client ID is not a secret. The PKCE verifier and OAuth
 /// tokens remain ephemeral/protected; no client secret is accepted here.
 class SpotifyOAuthService {
@@ -88,6 +93,7 @@ class SpotifyOAuthService {
       'code_challenge_method': 'S256',
       'code_challenge': challenge,
       'state': state,
+      'scope': spotifyPlaybackScopes.join(' '),
     });
 
     try {
@@ -140,17 +146,18 @@ class SpotifyOAuthService {
 
   Future<void> disconnect() => tokenStorage.delete(MusicServiceId.spotify);
 
-  Future<String?> accessToken() async {
+  Future<OAuthTokens?> currentTokens() async {
     final tokens = await tokenStorage.read(MusicServiceId.spotify);
     if (tokens == null) return null;
     try {
-      final current = await _ensureFresh(tokens);
-      return current.accessToken;
+      return await _ensureFresh(tokens);
     } on SpotifyOAuthException {
       await disconnect();
       return null;
     }
   }
+
+  Future<String?> accessToken() async => (await currentTokens())?.accessToken;
 
   Future<OAuthTokens> _ensureFresh(OAuthTokens tokens) async {
     final expiry = tokens.expiresAt;
@@ -192,10 +199,14 @@ class SpotifyOAuthService {
       throw const SpotifyOAuthException('Spotify returned an invalid token.');
     }
     final expiresIn = (json['expires_in'] as num?)?.toInt() ?? 3600;
+    final scopesValue = json['scope'] as String?;
     return OAuthTokens(
       accessToken: json['access_token'] as String,
       refreshToken: json['refresh_token'] as String? ?? previous?.refreshToken,
       expiresAt: DateTime.now().toUtc().add(Duration(seconds: expiresIn)),
+      scopes: scopesValue == null || scopesValue.trim().isEmpty
+          ? previous?.scopes ?? const {}
+          : scopesValue.split(' ').where((scope) => scope.isNotEmpty).toSet(),
     );
   }
 
@@ -235,6 +246,8 @@ class SpotifyConnectionController extends AsyncNotifier<OAuthTokens?> {
   }
 
   Future<String?> currentAccessToken() => _service.accessToken();
+
+  Future<OAuthTokens?> currentTokens() => _service.currentTokens();
 }
 
 final spotifyOAuthServiceProvider = Provider<SpotifyOAuthService>((ref) {
@@ -367,3 +380,288 @@ class SpotifySearchException implements Exception {
   @override
   String toString() => 'Spotify search failed (HTTP $statusCode).';
 }
+
+/// Controls a user's existing Spotify Connect devices. Nova never receives
+/// or re-streams Spotify audio; playback stays in Spotify's own client.
+class SpotifyRemotePlaybackService {
+  SpotifyRemotePlaybackService({
+    required this.tokensProvider,
+    http.Client? client,
+  }) : _client = client ?? http.Client();
+
+  final Future<OAuthTokens?> Function() tokensProvider;
+  final http.Client _client;
+
+  Future<List<SpotifyPlaybackDevice>> devices() async {
+    final response = await _request(
+      'GET',
+      Uri.https('api.spotify.com', '/v1/me/player/devices'),
+    );
+    final json = _decode(response);
+    final items = json is Map<String, dynamic> ? json['devices'] : null;
+    if (items is! List) return const [];
+    return [
+      for (final item in items)
+        if (item is Map<String, dynamic>)
+          if (SpotifyPlaybackDevice.fromJson(item) case final device?) device,
+    ];
+  }
+
+  Future<SpotifyPlaybackSnapshot?> currentPlayback() async {
+    final response = await _request(
+      'GET',
+      Uri.https('api.spotify.com', '/v1/me/player'),
+      allowNoContent: true,
+    );
+    if (response.statusCode == 204 || response.body.trim().isEmpty) {
+      return null;
+    }
+    final json = _decode(response);
+    return json is Map<String, dynamic>
+        ? SpotifyPlaybackSnapshot.fromJson(json)
+        : null;
+  }
+
+  Future<void> playTrack(String trackId, {String? deviceId}) async {
+    final uri = Uri.https(
+      'api.spotify.com',
+      '/v1/me/player/play',
+      deviceId == null ? null : {'device_id': deviceId},
+    );
+    await _request(
+      'PUT',
+      uri,
+      body: {
+        'uris': ['spotify:track:$trackId'],
+      },
+    );
+  }
+
+  Future<void> resume({String? deviceId}) async {
+    final uri = Uri.https(
+      'api.spotify.com',
+      '/v1/me/player/play',
+      deviceId == null ? null : {'device_id': deviceId},
+    );
+    await _request('PUT', uri, body: const {});
+  }
+
+  Future<void> pause({String? deviceId}) async {
+    final uri = Uri.https(
+      'api.spotify.com',
+      '/v1/me/player/pause',
+      deviceId == null ? null : {'device_id': deviceId},
+    );
+    await _request('PUT', uri);
+  }
+
+  Future<void> next({String? deviceId}) =>
+      _command('POST', '/v1/me/player/next', deviceId: deviceId);
+
+  Future<void> previous({String? deviceId}) =>
+      _command('POST', '/v1/me/player/previous', deviceId: deviceId);
+
+  Future<void> seek(Duration position, {String? deviceId}) async {
+    final uri = Uri.https('api.spotify.com', '/v1/me/player/seek', {
+      'position_ms': '${position.inMilliseconds.clamp(0, 2147483647)}',
+      if (deviceId != null) 'device_id': deviceId,
+    });
+    await _request('PUT', uri);
+  }
+
+  Future<void> transferPlayback(String deviceId, {bool play = true}) async {
+    await _request(
+      'PUT',
+      Uri.https('api.spotify.com', '/v1/me/player'),
+      body: {
+        'device_ids': [deviceId],
+        'play': play,
+      },
+    );
+  }
+
+  Future<void> _command(String method, String path, {String? deviceId}) async {
+    await _request(
+      method,
+      Uri.https('api.spotify.com', path, {
+        if (deviceId != null) 'device_id': deviceId,
+      }),
+    );
+  }
+
+  Future<http.Response> _request(
+    String method,
+    Uri uri, {
+    Map<String, Object?>? body,
+    bool allowNoContent = false,
+  }) async {
+    final tokens = await tokensProvider();
+    if (tokens == null) {
+      throw const SpotifyRemotePlaybackException(
+        'Connect Spotify first to control playback.',
+      );
+    }
+    if (!tokens.scopes.containsAll(spotifyPlaybackScopes)) {
+      throw const SpotifyRemotePlaybackException(
+        'Reconnect Spotify and approve playback control to use these controls.',
+      );
+    }
+
+    final request = http.Request(method, uri)
+      ..headers['Authorization'] = 'Bearer ${tokens.accessToken}'
+      ..headers['Accept'] = 'application/json';
+    if (body != null) {
+      request.headers['Content-Type'] = 'application/json';
+      request.body = jsonEncode(body);
+    }
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return response;
+    }
+    if (allowNoContent && response.statusCode == 204) return response;
+    if (response.statusCode == 404) {
+      throw const SpotifyRemotePlaybackException(
+        'No active Spotify device was found. Open Spotify on a device, then refresh.',
+      );
+    }
+    if (response.statusCode == 403) {
+      throw const SpotifyRemotePlaybackException(
+        'Spotify denied playback control. Check the account plan and reconnect permissions.',
+      );
+    }
+    if (response.statusCode == 429) {
+      throw const SpotifyRemotePlaybackException(
+        'Spotify is rate limiting requests. Wait a moment and try again.',
+      );
+    }
+    throw SpotifyRemotePlaybackException(
+      'Spotify playback request failed (HTTP ${response.statusCode}).',
+    );
+  }
+
+  Object? _decode(http.Response response) {
+    if (response.statusCode == 204 || response.body.trim().isEmpty) return null;
+    try {
+      return jsonDecode(response.body);
+    } on FormatException {
+      throw const SpotifyRemotePlaybackException(
+        'Spotify returned an unreadable playback response.',
+      );
+    }
+  }
+}
+
+class SpotifyPlaybackDevice {
+  const SpotifyPlaybackDevice({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.isActive,
+    required this.isRestricted,
+    this.volumePercent,
+  });
+
+  final String id;
+  final String name;
+  final String type;
+  final bool isActive;
+  final bool isRestricted;
+  final int? volumePercent;
+
+  static SpotifyPlaybackDevice? fromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    final name = json['name'];
+    if (id is! String || name is! String) return null;
+    return SpotifyPlaybackDevice(
+      id: id,
+      name: name,
+      type: json['type'] as String? ?? 'Device',
+      isActive: json['is_active'] as bool? ?? false,
+      isRestricted: json['is_restricted'] as bool? ?? false,
+      volumePercent: (json['volume_percent'] as num?)?.toInt(),
+    );
+  }
+}
+
+class SpotifyPlaybackSnapshot {
+  const SpotifyPlaybackSnapshot({
+    required this.trackId,
+    required this.title,
+    required this.artist,
+    required this.album,
+    required this.artworkUrl,
+    required this.duration,
+    required this.position,
+    required this.isPlaying,
+    required this.deviceName,
+  });
+
+  final String? trackId;
+  final String title;
+  final String artist;
+  final String album;
+  final String? artworkUrl;
+  final Duration duration;
+  final Duration position;
+  final bool isPlaying;
+  final String? deviceName;
+
+  static SpotifyPlaybackSnapshot? fromJson(Map<String, dynamic> json) {
+    final item = json['item'];
+    if (item is! Map<String, dynamic>) return null;
+    final title = item['name'];
+    if (title is! String) return null;
+    final artists = item['artists'];
+    final artist = artists is List
+        ? artists
+              .whereType<Map<String, dynamic>>()
+              .map((entry) => entry['name'])
+              .whereType<String>()
+              .join(', ')
+        : '';
+    final albumValue = item['album'];
+    final album = albumValue is Map<String, dynamic>
+        ? albumValue
+        : const <String, dynamic>{};
+    final images = album['images'];
+    final firstImage = images is List && images.isNotEmpty
+        ? images.first
+        : null;
+    final artworkUrl = firstImage is Map<String, dynamic>
+        ? firstImage['url'] as String?
+        : null;
+    final durationMs = (item['duration_ms'] as num?)?.toInt() ?? 0;
+    final positionMs = (json['progress_ms'] as num?)?.toInt() ?? 0;
+    final device = json['device'];
+    return SpotifyPlaybackSnapshot(
+      trackId: item['id'] as String?,
+      title: title,
+      artist: artist,
+      album: album['name'] as String? ?? '',
+      artworkUrl: artworkUrl,
+      duration: Duration(milliseconds: durationMs),
+      position: Duration(milliseconds: positionMs.clamp(0, durationMs)),
+      isPlaying: json['is_playing'] as bool? ?? false,
+      deviceName: device is Map<String, dynamic>
+          ? device['name'] as String?
+          : null,
+    );
+  }
+}
+
+class SpotifyRemotePlaybackException implements Exception {
+  const SpotifyRemotePlaybackException(this.message);
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+final spotifyRemotePlaybackServiceProvider =
+    Provider<SpotifyRemotePlaybackService>((ref) {
+      return SpotifyRemotePlaybackService(
+        tokensProvider: () =>
+            ref.read(spotifyConnectionProvider.notifier).currentTokens(),
+      );
+    });
