@@ -8,7 +8,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/current_song.dart';
 import '../../models/playlist.dart';
+import 'music_catalog_providers.dart';
 import 'music_service.dart';
+import 'spotify_service.dart';
 import 'search_service_preferences.dart';
 import '../../providers/audio/audio_player_provider.dart';
 import '../../providers/library/library_provider.dart';
@@ -81,7 +83,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1120),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(32, 30, 32, 24),
+              padding: const EdgeInsets.fromLTRB(28, 26, 28, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -135,7 +137,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 900),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(12),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(
                           sigmaX: settings.liquidGlass
@@ -174,11 +176,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                   : .94,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(22),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(22),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
                                 color: theme.colorScheme.onSurface.withValues(
                                   alpha: .08,
@@ -186,7 +188,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(22),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
                                 color: theme.colorScheme.primary.withValues(
                                   alpha: .7,
@@ -259,8 +261,82 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                 },
                           tooltip: service.status.message,
                         ),
+                      ActionChip(
+                        avatar: Icon(
+                          Icons.login_rounded,
+                          size: 17,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        label: Text(
+                          catalogServices
+                                      .map((service) => service.status)
+                                      .where(
+                                        (status) =>
+                                            status.service ==
+                                            MusicServiceId.spotify,
+                                      )
+                                      .first
+                                      .connection ==
+                                  MusicServiceConnection.connected
+                              ? 'Disconnect Spotify'
+                              : 'Connect Spotify',
+                        ),
+                        onPressed: () async {
+                          final connection = ref.read(
+                            spotifyConnectionProvider.notifier,
+                          );
+                          final isConnected =
+                              ref
+                                  .read(musicCatalogServicesProvider)
+                                  .map((service) => service.status)
+                                  .where(
+                                    (status) =>
+                                        status.service ==
+                                        MusicServiceId.spotify,
+                                  )
+                                  .first
+                                  .connection ==
+                              MusicServiceConnection.connected;
+                          if (isConnected) {
+                            await connection.disconnect();
+                          } else {
+                            await connection.connect();
+                          }
+                          final state = ref.read(spotifyConnectionProvider);
+                          if (state.hasError && mounted) {
+                            setState(() {
+                              _remoteSearchError = state.error.toString();
+                            });
+                          } else if (mounted) {
+                            setState(() {
+                              _remoteSearchError = null;
+                            });
+                          }
+                        },
+                      ),
                     ],
                   ),
+                  if (_searchController.text.trim().isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: ActionChip(
+                          avatar: const Icon(
+                            Icons.open_in_new_rounded,
+                            size: 16,
+                          ),
+                          label: const Text('Search YouTube Music externally'),
+                          tooltip: 'YouTube Music has no supported public search API. This opens its website.',
+                          onPressed: () => launchUrl(
+                            Uri.https('music.youtube.com', '/search', {
+                              'q': _searchController.text.trim(),
+                            }),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                        ),
+                      ),
+                    ),
                   if (_remoteSearchError != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
@@ -271,6 +347,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         ),
                       ),
                     ),
+                  const _SpotifyRemotePlaybackPanel(),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 10,
@@ -460,7 +537,7 @@ class _SongResultTile extends ConsumerWidget {
     final theme = Theme.of(context);
     return Material(
       color: theme.colorScheme.surface.withValues(alpha: .58),
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: () async {
           final selectedIndex = queue.indexWhere(
@@ -482,12 +559,12 @@ class _SongResultTile extends ConsumerWidget {
                 .push(MaterialPageRoute(builder: (_) => const PlayerPage()));
           }
         },
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: theme.colorScheme.onSurface.withValues(alpha: .06),
             ),
@@ -602,19 +679,19 @@ class _PlaylistResultTile extends StatelessWidget {
   }
 }
 
-class _RemoteSearchResultTile extends StatelessWidget {
+class _RemoteSearchResultTile extends ConsumerWidget {
   const _RemoteSearchResultTile({required this.result});
 
   final MusicSearchResult result;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withValues(alpha: .58),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: ListTile(
         leading: ClipRRect(
@@ -643,16 +720,349 @@ class _RemoteSearchResultTile extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: IconButton(
-          tooltip: 'Open ${result.service.name} result',
-          icon: const Icon(Icons.open_in_new_rounded),
-          onPressed: result.url.isEmpty
-              ? null
-              : () => launchUrl(
-                  Uri.parse(result.url),
-                  mode: LaunchMode.externalApplication,
-                ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (result.service == MusicServiceId.spotify)
+              IconButton(
+                tooltip: 'Play on Spotify',
+                icon: const Icon(Icons.play_arrow_rounded),
+                onPressed: () async {
+                  try {
+                    await ref
+                        .read(spotifyRemotePlaybackServiceProvider)
+                        .playTrack(result.id);
+                  } catch (error) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(error.toString())));
+                    }
+                  }
+                },
+              ),
+            IconButton(
+              tooltip: 'Open ${result.service.name} result',
+              icon: const Icon(Icons.open_in_new_rounded),
+              onPressed: result.url.isEmpty
+                  ? null
+                  : () => launchUrl(
+                      Uri.parse(result.url),
+                      mode: LaunchMode.externalApplication,
+                    ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class _SpotifyRemotePlaybackPanel extends ConsumerStatefulWidget {
+  const _SpotifyRemotePlaybackPanel();
+
+  @override
+  ConsumerState<_SpotifyRemotePlaybackPanel> createState() =>
+      _SpotifyRemotePlaybackPanelState();
+}
+
+class _SpotifyRemotePlaybackPanelState
+    extends ConsumerState<_SpotifyRemotePlaybackPanel> {
+  Timer? _pollTimer;
+  List<SpotifyPlaybackDevice> _devices = const [];
+  SpotifyPlaybackSnapshot? _snapshot;
+  String? _selectedDeviceId;
+  String? _error;
+  bool _loading = false;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 8),
+      (_) => _refresh(silent: true),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refresh({bool silent = false}) async {
+    if (!mounted || _loading && !silent) return;
+    if (ref.read(spotifyConnectionProvider).value == null) return;
+    if (!silent) setState(() => _loading = true);
+    try {
+      final service = ref.read(spotifyRemotePlaybackServiceProvider);
+      final values = await Future.wait<Object?>([
+        service.currentPlayback(),
+        service.devices(),
+      ]);
+      if (!mounted) return;
+      final devices = values[1] as List<SpotifyPlaybackDevice>;
+      final snapshot = values[0] as SpotifyPlaybackSnapshot?;
+      String? activeDevice;
+      for (final device in devices) {
+        if (device.isActive) activeDevice = device.id;
+      }
+      setState(() {
+        _devices = devices;
+        _snapshot = snapshot;
+        _selectedDeviceId =
+            activeDevice ??
+            (devices.any((device) => device.id == _selectedDeviceId)
+                ? _selectedDeviceId
+                : null);
+        _error = null;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted && !silent) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _perform(Future<void> Function() action) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+      await _refresh(silent: true);
+      if (mounted) setState(() => _error = null);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final connection = ref.watch(spotifyConnectionProvider);
+    final tokens = connection.when(
+      data: (value) => value,
+      error: (_, _) => null,
+      loading: () => null,
+    );
+    if (tokens == null) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final snapshot = _snapshot;
+    final selectedDevice =
+        _devices.any((device) => device.id == _selectedDeviceId)
+        ? _selectedDeviceId
+        : null;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainer.withValues(alpha: .58),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.onSurface.withValues(alpha: .08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.devices_rounded, color: colors.primary, size: 19),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Spotify Connect',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (_devices.isNotEmpty)
+                DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedDevice,
+                    hint: const Text('Choose device'),
+                    isDense: true,
+                    items: [
+                      for (final device in _devices)
+                        DropdownMenuItem(
+                          value: device.id,
+                          child: Text(
+                            device.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: _busy
+                        ? null
+                        : (deviceId) {
+                            if (deviceId == null) return;
+                            setState(() => _selectedDeviceId = deviceId);
+                            _perform(
+                              () => ref
+                                  .read(spotifyRemotePlaybackServiceProvider)
+                                  .transferPlayback(deviceId),
+                            );
+                          },
+                  ),
+                ),
+              IconButton(
+                tooltip: 'Refresh Spotify',
+                visualDensity: VisualDensity.compact,
+                onPressed: _loading ? null : _refresh,
+                icon: _loading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh_rounded, size: 19),
+              ),
+            ],
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _error!,
+              style: theme.textTheme.bodySmall?.copyWith(color: colors.error),
+            ),
+            if (_error!.contains('Reconnect Spotify'))
+              TextButton.icon(
+                onPressed: _busy
+                    ? null
+                    : () => ref
+                          .read(spotifyConnectionProvider.notifier)
+                          .connect(),
+                icon: const Icon(Icons.login_rounded, size: 17),
+                label: const Text('Reconnect and approve'),
+              ),
+          ],
+          if (_devices.isEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Open Spotify on a device, then refresh to control it here.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => launchUrl(
+                Uri.https('open.spotify.com', '/'),
+                mode: LaunchMode.externalApplication,
+              ),
+              icon: const Icon(Icons.open_in_new_rounded, size: 16),
+              label: const Text('Open Spotify'),
+            ),
+          ] else if (snapshot != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: snapshot.artworkUrl == null
+                      ? Container(
+                          width: 44,
+                          height: 44,
+                          color: colors.surfaceContainerHighest,
+                          child: const Icon(Icons.music_note_rounded),
+                        )
+                      : Image.network(
+                          snapshot.artworkUrl!,
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => Container(
+                            width: 44,
+                            height: 44,
+                            color: colors.surfaceContainerHighest,
+                            child: const Icon(Icons.music_note_rounded),
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        snapshot.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        '${snapshot.artist} · ${snapshot.deviceName ?? 'Spotify'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Previous track',
+                  onPressed: _busy
+                      ? null
+                      : () => _perform(
+                          () => ref
+                              .read(spotifyRemotePlaybackServiceProvider)
+                              .previous(deviceId: selectedDevice),
+                        ),
+                  icon: const Icon(Icons.skip_previous_rounded),
+                ),
+                IconButton.filled(
+                  tooltip: snapshot.isPlaying
+                      ? 'Pause Spotify'
+                      : 'Resume Spotify',
+                  onPressed: _busy
+                      ? null
+                      : () => _perform(
+                          () => snapshot.isPlaying
+                              ? ref
+                                    .read(spotifyRemotePlaybackServiceProvider)
+                                    .pause(deviceId: selectedDevice)
+                              : ref
+                                    .read(spotifyRemotePlaybackServiceProvider)
+                                    .resume(deviceId: selectedDevice),
+                        ),
+                  icon: Icon(
+                    snapshot.isPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Next track',
+                  onPressed: _busy
+                      ? null
+                      : () => _perform(
+                          () => ref
+                              .read(spotifyRemotePlaybackServiceProvider)
+                              .next(deviceId: selectedDevice),
+                        ),
+                  icon: const Icon(Icons.skip_next_rounded),
+                ),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 4),
+            Text(
+              'Spotify is ready. Start a result or choose a Spotify device.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
