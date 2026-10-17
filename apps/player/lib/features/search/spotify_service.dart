@@ -665,3 +665,25 @@ final spotifyRemotePlaybackServiceProvider =
             ref.read(spotifyConnectionProvider.notifier).currentTokens(),
       );
     });
+
+final spotifyCurrentPlaybackProvider = StreamProvider<SpotifyPlaybackSnapshot?>(
+  (ref) async* {
+    final tokens = ref
+        .watch(spotifyConnectionProvider)
+        .when(
+          data: (value) => value,
+          error: (_, _) => null,
+          loading: () => null,
+        );
+    if (tokens == null) return;
+    final service = ref.watch(spotifyRemotePlaybackServiceProvider);
+    while (true) {
+      try {
+        yield await service.currentPlayback();
+      } catch (_) {
+        yield null;
+      }
+      await Future<void>.delayed(const Duration(seconds: 8));
+    }
+  },
+);
