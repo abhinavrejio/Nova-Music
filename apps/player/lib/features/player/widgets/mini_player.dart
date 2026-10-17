@@ -13,6 +13,7 @@ import '../../../providers/settings_provider.dart';
 import '../../../services/audio_player_service.dart';
 import '../player_page.dart';
 import '../../../services/keyboard_shortcut_service.dart';
+import '../../search/spotify_service.dart';
 
 class MiniPlayer extends ConsumerWidget {
   const MiniPlayer({super.key});
@@ -20,6 +21,18 @@ class MiniPlayer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final song = ref.watch(currentSongProvider);
+    final spotifyConnection = ref.watch(spotifyConnectionProvider);
+    final spotifyPlayback = spotifyConnection.when(
+      data: (tokens) => tokens == null
+          ? null
+          : ref.watch(spotifyCurrentPlaybackProvider).asData?.value,
+      error: (_, _) => null,
+      loading: () => null,
+    );
+    if (spotifyPlayback != null &&
+        (song == null || spotifyPlayback.isPlaying)) {
+      return _SpotifyRemoteMiniPlayer(snapshot: spotifyPlayback);
+    }
     if (song == null) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
@@ -433,6 +446,309 @@ class MiniPlayer extends ConsumerWidget {
             child: const Text('Done'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SpotifyRemoteMiniPlayer extends ConsumerWidget {
+  const _SpotifyRemoteMiniPlayer({required this.snapshot});
+
+  final SpotifyPlaybackSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final settings = ref.watch(settingsProvider);
+    final width = MediaQuery.sizeOf(context).width;
+    final desktop = width >= 800;
+    final durationMs = snapshot.duration.inMilliseconds;
+    final progress = durationMs <= 0
+        ? 0.0
+        : snapshot.position.inMilliseconds.clamp(0, durationMs).toDouble();
+    final colors = theme.colorScheme;
+
+    Future<void> perform(Future<void> Function() action) async {
+      try {
+        await action();
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(error.toString())));
+        }
+      }
+    }
+
+    Widget artwork(double size) => ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: snapshot.artworkUrl == null
+          ? Container(
+              width: size,
+              height: size,
+              color: colors.surfaceContainerHighest,
+              child: Icon(Icons.music_note_rounded, color: colors.primary),
+            )
+          : Image.network(
+              snapshot.artworkUrl!,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                width: size,
+                height: size,
+                color: colors.surfaceContainerHighest,
+                child: Icon(Icons.music_note_rounded, color: colors.primary),
+              ),
+            ),
+    );
+
+    Widget trackInfo(double artworkSize) => InkWell(
+      onTap: () => context.push('/search'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Row(
+          children: [
+            artwork(artworkSize),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    snapshot.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    snapshot.artist.isEmpty ? 'Spotify' : snapshot.artist,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    Widget control({
+      required String tooltip,
+      required IconData icon,
+      required Future<void> Function() action,
+      bool filled = false,
+    }) {
+      final button = IconButton(
+        tooltip: tooltip,
+        onPressed: () => perform(action),
+        icon: Icon(icon),
+        style: filled
+            ? IconButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+              )
+            : null,
+      );
+      return button;
+    }
+
+    final controls = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        control(
+          tooltip: 'Previous Spotify track',
+          icon: Icons.skip_previous_rounded,
+          action: () =>
+              ref.read(spotifyRemotePlaybackServiceProvider).previous(),
+        ),
+        control(
+          tooltip: snapshot.isPlaying ? 'Pause Spotify' : 'Resume Spotify',
+          icon: snapshot.isPlaying
+              ? Icons.pause_rounded
+              : Icons.play_arrow_rounded,
+          action: () => snapshot.isPlaying
+              ? ref.read(spotifyRemotePlaybackServiceProvider).pause()
+              : ref.read(spotifyRemotePlaybackServiceProvider).resume(),
+          filled: true,
+        ),
+        control(
+          tooltip: 'Next Spotify track',
+          icon: Icons.skip_next_rounded,
+          action: () => ref.read(spotifyRemotePlaybackServiceProvider).next(),
+        ),
+      ],
+    );
+
+    final playerBar = desktop
+        ? SizedBox(
+            height: 78,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: (width * .25).clamp(220, 360),
+                  child: trackInfo(48),
+                ),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      controls,
+                      SizedBox(
+                        height: 18,
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 2,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 4,
+                            ),
+                            overlayShape: SliderComponentShape.noOverlay,
+                          ),
+                          child: Slider(
+                            value: progress,
+                            min: 0,
+                            max: durationMs <= 0 ? 1 : durationMs.toDouble(),
+                            onChanged: durationMs <= 0 ? null : (value) {},
+                            onChangeEnd: durationMs <= 0
+                                ? null
+                                : (value) => perform(
+                                    () => ref
+                                        .read(
+                                          spotifyRemotePlaybackServiceProvider,
+                                        )
+                                        .seek(
+                                          Duration(milliseconds: value.round()),
+                                        ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: 240,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        tooltip: 'Open Spotify Connect controls',
+                        onPressed: () => context.push('/search'),
+                        icon: const Icon(Icons.devices_rounded),
+                      ),
+                      IconButton(
+                        tooltip: 'Open Search',
+                        onPressed: () => context.push('/search'),
+                        icon: const Icon(Icons.search_rounded),
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 64,
+                child: Row(
+                  children: [
+                    Expanded(child: trackInfo(46)),
+                    control(
+                      tooltip: 'Previous Spotify track',
+                      icon: Icons.skip_previous_rounded,
+                      action: () => ref
+                          .read(spotifyRemotePlaybackServiceProvider)
+                          .previous(),
+                    ),
+                    control(
+                      tooltip: snapshot.isPlaying
+                          ? 'Pause Spotify'
+                          : 'Resume Spotify',
+                      icon: snapshot.isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                      action: () => snapshot.isPlaying
+                          ? ref
+                                .read(spotifyRemotePlaybackServiceProvider)
+                                .pause()
+                          : ref
+                                .read(spotifyRemotePlaybackServiceProvider)
+                                .resume(),
+                      filled: true,
+                    ),
+                    control(
+                      tooltip: 'Next Spotify track',
+                      icon: Icons.skip_next_rounded,
+                      action: () =>
+                          ref.read(spotifyRemotePlaybackServiceProvider).next(),
+                    ),
+                    IconButton(
+                      tooltip: 'Open Spotify Connect controls',
+                      onPressed: () => context.push('/search'),
+                      icon: const Icon(Icons.devices_rounded),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 14,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 2,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 2.5,
+                    ),
+                    overlayShape: SliderComponentShape.noOverlay,
+                  ),
+                  child: Slider(
+                    value: progress,
+                    min: 0,
+                    max: durationMs <= 0 ? 1 : durationMs.toDouble(),
+                    onChanged: durationMs <= 0 ? null : (value) {},
+                    onChangeEnd: durationMs <= 0
+                        ? null
+                        : (value) => perform(
+                            () => ref
+                                .read(spotifyRemotePlaybackServiceProvider)
+                                .seek(Duration(milliseconds: value.round())),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          );
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: desktop
+            ? EdgeInsets.zero
+            : const EdgeInsets.fromLTRB(12, 4, 12, 12),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: desktop ? width : 850),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(desktop ? 0 : 14),
+            child: Material(
+              color: colors.surface.withValues(
+                alpha: settings.liquidGlass
+                    ? settings.glassSurfaceOpacity
+                    : .97,
+              ),
+              child: playerBar,
+            ),
+          ),
+        ),
       ),
     );
   }
