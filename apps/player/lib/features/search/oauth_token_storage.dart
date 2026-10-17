@@ -8,11 +8,13 @@ class OAuthTokens {
     required this.accessToken,
     this.refreshToken,
     this.expiresAt,
+    this.scopes = const {},
   });
 
   final String accessToken;
   final String? refreshToken;
   final DateTime? expiresAt;
+  final Set<String> scopes;
 }
 
 abstract interface class OAuthTokenStorage {
@@ -63,12 +65,16 @@ class ProtectedOAuthTokenStorage implements OAuthTokenStorage {
     if (accessToken == null || accessToken.isEmpty) return null;
     final refreshToken = await _store.read(_key(service, 'refresh'));
     final expiresAtValue = await _store.read(_key(service, 'expires'));
+    final scopesValue = await _store.read(_key(service, 'scopes'));
     return OAuthTokens(
       accessToken: accessToken,
       refreshToken: refreshToken,
       expiresAt: expiresAtValue == null
           ? null
           : DateTime.tryParse(expiresAtValue),
+      scopes: scopesValue == null || scopesValue.trim().isEmpty
+          ? const {}
+          : scopesValue.split(' ').where((scope) => scope.isNotEmpty).toSet(),
     );
   }
 
@@ -88,6 +94,11 @@ class ProtectedOAuthTokenStorage implements OAuthTokenStorage {
         tokens.expiresAt!.toUtc().toIso8601String(),
       );
     }
+    if (tokens.scopes.isEmpty) {
+      await _store.delete(_key(service, 'scopes'));
+    } else {
+      await _store.write(_key(service, 'scopes'), tokens.scopes.join(' '));
+    }
   }
 
   @override
@@ -96,6 +107,7 @@ class ProtectedOAuthTokenStorage implements OAuthTokenStorage {
       _store.delete(_key(service, 'access')),
       _store.delete(_key(service, 'refresh')),
       _store.delete(_key(service, 'expires')),
+      _store.delete(_key(service, 'scopes')),
     ]);
   }
 }
