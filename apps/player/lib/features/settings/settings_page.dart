@@ -668,7 +668,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _credentialCard(
           context,
           title: 'Spotify client ID',
-          description: 'Enables Spotify sign-in with PKCE and catalog search. Add the loopback redirect used by Nova in your Spotify developer app.',
+          description: 'Enables Spotify sign-in, catalog search, and Spotify Connect controls. Register http://127.0.0.1/callback as the redirect URI (without a port). Playback control requires Spotify Premium and an available Spotify device.',
           read: credentials.readSpotifyClientId,
           save: credentials.saveSpotifyClientId,
           remove: credentials.removeSpotifyClientId,
@@ -683,7 +683,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _credentialCard(
           context,
           title: 'Apple Music developer token',
-          description: 'Enables Apple Music catalog search. Apple subscriber-library access needs a separate MusicKit authorization that this desktop build does not provide yet.',
+          description: 'Enables Apple Music catalog search and opens results in Apple Music. This Windows desktop build does not embed Apple Music playback; the official MusicKit playback framework targets Apple platforms and the web.',
           read: credentials.readAppleMusicDeveloperToken,
           save: credentials.saveAppleMusicDeveloperToken,
           remove: credentials.removeAppleMusicDeveloperToken,
@@ -695,7 +695,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const _InfoTile(
           icon: Icons.open_in_new_rounded,
           title: 'Other streaming services',
-          subtitle: 'YouTube Music opens search in its own app or website. Nova does not proxy or re-stream provider audio.',
+          subtitle: 'YouTube Music search opens its official app or website. Nova does not proxy or re-stream provider audio.',
         ),
         _sectionTitle(
           context,
